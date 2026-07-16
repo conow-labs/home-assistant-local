@@ -1,0 +1,158 @@
+{
+  "exceptions": {
+    "force_mode_power_required": {
+      "message": "请先设置「目标充放电功率」大于 0 W，再选择强制充电或强制放电。"
+    },
+    "force_mode_cutoff_required": {
+      "message": "请先将「充放电截止 SOC」设置为 1–100，再选择强制充电或强制放电。"
+    }
+  },
+  "config": {
+    "error": {
+      "cannot_connect": "无法通过 Modbus RTU 连接，请检查串口、接线、DIY/外部控制模式及从站地址。"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "device_name": "设备名称",
+          "modbus_port": "串口",
+          "modbus_slave": "从站地址",
+          "modbus_baudrate": "波特率"
+        },
+        "description": "默认 **38400 8N1**、从站 **0xA0**。请先在 Conow App 中开启 **DIY 模式** 或 **外部控制**。"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "fault_code": {
+        "name": "故障码"
+      },
+      "battery_voltage": {
+        "name": "电池电压"
+      },
+      "battery_soc": {
+        "name": "电池 SOC"
+      },
+      "battery_design_capacity": {
+        "name": "电池设计容量"
+      },
+      "battery_cell_temp_max": {
+        "name": "电芯最高温度"
+      },
+      "battery_cell_temp_min": {
+        "name": "电芯最低温度"
+      },
+      "battery_cumulative_charge_energy": {
+        "name": "电池累计充电电量"
+      },
+      "battery_cumulative_discharge_energy": {
+        "name": "电池累计放电电量"
+      },
+      "grid_active_power": {
+        "name": "电网有功功率"
+      },
+      "grid_frequency": {
+        "name": "电网频率"
+      },
+      "grid_cumulative_import_energy": {
+        "name": "累计电网取电电量"
+      },
+      "grid_cumulative_export_energy": {
+        "name": "累计电网馈电电量"
+      },
+      "backup_load_power": {
+        "name": "旁路功率"
+      },
+      "backup_load_cumulative_export_energy": {
+        "name": "旁路累计输出电量"
+      },
+      "backup_load_cumulative_import_energy": {
+        "name": "旁路累计输入电量"
+      },
+      "pv_total_power": {
+        "name": "PV 总输入功率"
+      },
+      "pv_total_cumulative_energy": {
+        "name": "PV 累计总发电量"
+      },
+      "pv1_power": {
+        "name": "PV1 输入功率"
+      },
+      "pv1_cumulative_energy": {
+        "name": "PV1 累计发电量"
+      },
+      "pv2_power": {
+        "name": "PV2 输入功率"
+      },
+      "pv2_cumulative_energy": {
+        "name": "PV2 累计发电量"
+      },
+      "pv3_power": {
+        "name": "PV3 输入功率"
+      },
+      "pv3_cumulative_energy": {
+        "name": "PV3 累计发电量"
+      },
+      "pv4_power": {
+        "name": "PV4 输入功率"
+      },
+      "pv4_cumulative_energy": {
+        "name": "PV4 累计发电量"
+      }
+    },
+    "binary_sensor": {
+      "system_status_standby": {
+        "name": "系统-待机"
+      },
+      "system_status_fault": {
+        "name": "系统-故障"
+      },
+      "system_status_charging": {
+        "name": "系统-充电中"
+      },
+      "system_status_discharging": {
+        "name": "系统-放电中",
+        "state": {
+          "on": "放电中",
+          "off": "未放电"
+        }
+      }
+    },
+    "number": {
+      "grid_charge_power_limit": {
+        "name": "交流充电功率限制"
+      },
+      "battery_discharge_power_limit": {
+        "name": "放电功率限制"
+      },
+      "backup_soc": {
+        "name": "备电 SOC"
+      },
+      "battery_target_power": {
+        "name": "目标充放电功率"
+      },
+      "battery_cutoff_soc": {
+        "name": "充放电截止 SOC"
+      }
+    },
+    "switch": {
+      "off_grid_output_enable": {
+        "name": "离网输出开关"
+      },
+      "pv_curtailment_enable": {
+        "name": "PV 限发开关"
+      }
+    },
+    "select": {
+      "charge_discharge_direction": {
+        "name": "充放电方向",
+        "state": {
+          "force_charge": "强制充电",
+          "idle": "空闲",
+          "force_discharge": "强制放电"
+        }
+      }
+    }
+  }
+}
