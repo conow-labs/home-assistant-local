@@ -103,13 +103,21 @@
     },
     "binary_sensor": {
       "system_status_standby": {
-        "name": "系统-待机"
+        "name": "系统-待机",
+        "state": {
+          "on": "待机中",
+          "off": "未待机"
+        }
       },
       "system_status_fault": {
         "name": "系统-故障"
       },
       "system_status_charging": {
-        "name": "系统-充电中"
+        "name": "系统-充电中",
+        "state": {
+          "on": "充电中",
+          "off": "未充电"
+        }
       },
       "system_status_discharging": {
         "name": "系统-放电中",
