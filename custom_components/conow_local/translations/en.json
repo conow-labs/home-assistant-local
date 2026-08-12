@@ -26,93 +26,101 @@
   "entity": {
     "sensor": {
       "fault_code": {
-        "name": "Fault code"
+        "name": "Fault Code"
       },
       "battery_voltage": {
-        "name": "Battery voltage"
+        "name": "Battery Voltage"
       },
       "battery_soc": {
-        "name": "Battery SOC"
+        "name": "Battery SoC"
       },
       "battery_design_capacity": {
-        "name": "Battery design capacity"
+        "name": "Design Capacity"
       },
       "battery_cell_temp_max": {
-        "name": "Cell temp max"
+        "name": "Max. Cell Temperature"
       },
       "battery_cell_temp_min": {
-        "name": "Cell temp min"
+        "name": "Min. Cell Temperature"
       },
       "battery_cumulative_charge_energy": {
-        "name": "Battery cumulative charge energy"
+        "name": "Total Charge Energy"
       },
       "battery_cumulative_discharge_energy": {
-        "name": "Battery cumulative discharge energy"
+        "name": "Total Discharge Energy"
       },
       "grid_active_power": {
-        "name": "Grid active power"
+        "name": "Grid Active Power"
       },
       "grid_frequency": {
-        "name": "Grid frequency"
+        "name": "Grid Frequency"
       },
       "grid_cumulative_import_energy": {
-        "name": "Cumulative grid import energy"
+        "name": "Total Grid Import"
       },
       "grid_cumulative_export_energy": {
-        "name": "Cumulative grid export energy"
+        "name": "Total Grid Export"
       },
       "backup_load_power": {
-        "name": "Bypass power"
+        "name": "Bypass Power"
       },
       "backup_load_cumulative_export_energy": {
-        "name": "Bypass cumulative output energy"
+        "name": "Total Bypass Output"
       },
       "backup_load_cumulative_import_energy": {
-        "name": "Bypass cumulative input energy"
+        "name": "Total Bypass Input"
       },
       "pv_total_power": {
-        "name": "PV total input power"
+        "name": "Total PV Input Power"
       },
       "pv_total_cumulative_energy": {
-        "name": "PV cumulative total energy"
+        "name": "Total PV Yield"
       },
       "pv1_power": {
-        "name": "PV1 input power"
+        "name": "PV1 Input Power"
       },
       "pv1_cumulative_energy": {
-        "name": "PV1 cumulative energy"
+        "name": "PV1 Total Yield"
       },
       "pv2_power": {
-        "name": "PV2 input power"
+        "name": "PV2 Input Power"
       },
       "pv2_cumulative_energy": {
-        "name": "PV2 cumulative energy"
+        "name": "PV2 Total Yield"
       },
       "pv3_power": {
-        "name": "PV3 input power"
+        "name": "PV3 Input Power"
       },
       "pv3_cumulative_energy": {
-        "name": "PV3 cumulative energy"
+        "name": "PV3 Total Yield"
       },
       "pv4_power": {
-        "name": "PV4 input power"
+        "name": "PV4 Input Power"
       },
       "pv4_cumulative_energy": {
-        "name": "PV4 cumulative energy"
+        "name": "PV4 Total Yield"
       }
     },
     "binary_sensor": {
       "system_status_standby": {
-        "name": "System-Standby"
+        "name": "System–Standby",
+        "state": {
+          "on": "Standby",
+          "off": "Not in standby"
+        }
       },
       "system_status_fault": {
-        "name": "System-Fault"
+        "name": "System–Fault"
       },
       "system_status_charging": {
-        "name": "System-Charging"
+        "name": "System–Charging",
+        "state": {
+          "on": "Charging",
+          "off": "Not charging"
+        }
       },
       "system_status_discharging": {
-        "name": "System-Discharging",
+        "name": "System–Discharging",
         "state": {
           "on": "Discharging",
           "off": "Not discharging"
@@ -121,36 +129,36 @@
     },
     "number": {
       "grid_charge_power_limit": {
-        "name": "AC charge power limit"
+        "name": "AC Charge Power Limit"
       },
       "battery_discharge_power_limit": {
-        "name": "Discharge power limit"
+        "name": "AC Discharge Power Limit"
       },
       "backup_soc": {
-        "name": "Backup SOC"
+        "name": "Backup SoC"
       },
       "battery_target_power": {
-        "name": "Target charge discharge power"
+        "name": "Target Charge / Discharge Power"
       },
       "battery_cutoff_soc": {
-        "name": "Charge discharge cutoff SOC"
+        "name": "Charge / Discharge Cut-off SoC"
       }
     },
     "switch": {
       "off_grid_output_enable": {
-        "name": "Off grid output switch"
+        "name": "Off-Grid Output Switch"
       },
       "pv_curtailment_enable": {
-        "name": "PV curtailment switch"
+        "name": "PV Curtailment Switch"
       }
     },
     "select": {
       "charge_discharge_direction": {
-        "name": "Charge discharge direction",
+        "name": "Charge / Discharge Direction",
         "state": {
-          "force_charge": "Force charge",
+          "force_charge": "Force Charge",
           "idle": "Idle",
-          "force_discharge": "Force discharge"
+          "force_discharge": "Force Discharge"
         }
       }
     }

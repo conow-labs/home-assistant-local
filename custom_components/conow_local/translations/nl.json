@@ -26,139 +26,139 @@
   "entity": {
     "sensor": {
       "fault_code": {
-        "name": "Fault Code"
+        "name": "Foutcode"
       },
       "battery_voltage": {
-        "name": "Battery Voltage"
+        "name": "Accuspanning"
       },
       "battery_soc": {
-        "name": "Battery SoC"
+        "name": "Accu-SoC"
       },
       "battery_design_capacity": {
-        "name": "Design Capacity"
+        "name": "Ontwerpcapaciteit"
       },
       "battery_cell_temp_max": {
-        "name": "Max. Cell Temperature"
+        "name": "Max. celtemperatuur"
       },
       "battery_cell_temp_min": {
-        "name": "Min. Cell Temperature"
+        "name": "Min. celtemperatuur"
       },
       "battery_cumulative_charge_energy": {
-        "name": "Total Charge Energy"
+        "name": "Totale laadenergie"
       },
       "battery_cumulative_discharge_energy": {
-        "name": "Total Discharge Energy"
+        "name": "Totale ontlaadenergie"
       },
       "grid_active_power": {
-        "name": "Grid Active Power"
+        "name": "Net actief vermogen"
       },
       "grid_frequency": {
-        "name": "Grid Frequency"
+        "name": "Netfrequentie"
       },
       "grid_cumulative_import_energy": {
-        "name": "Total Grid Import"
+        "name": "Totale netafname"
       },
       "grid_cumulative_export_energy": {
-        "name": "Total Grid Export"
+        "name": "Totale netinjectie"
       },
       "backup_load_power": {
-        "name": "Bypass Power"
+        "name": "Bypass-vermogen"
       },
       "backup_load_cumulative_export_energy": {
-        "name": "Total Bypass Output"
+        "name": "Totale bypass-output"
       },
       "backup_load_cumulative_import_energy": {
-        "name": "Total Bypass Input"
+        "name": "Totale bypass-input"
       },
       "pv_total_power": {
-        "name": "Total PV Input Power"
+        "name": "Totaal PV-ingangsvermogen"
       },
       "pv_total_cumulative_energy": {
-        "name": "Total PV Yield"
+        "name": "Totale PV-opbrengst"
       },
       "pv1_power": {
-        "name": "PV1 Input Power"
+        "name": "PV1-ingangsvermogen"
       },
       "pv1_cumulative_energy": {
-        "name": "PV1 Total Yield"
+        "name": "PV1 totale opbrengst"
       },
       "pv2_power": {
-        "name": "PV2 Input Power"
+        "name": "PV2-ingangsvermogen"
       },
       "pv2_cumulative_energy": {
-        "name": "PV2 Total Yield"
+        "name": "PV2 totale opbrengst"
       },
       "pv3_power": {
-        "name": "PV3 Input Power"
+        "name": "PV3-ingangsvermogen"
       },
       "pv3_cumulative_energy": {
-        "name": "PV3 Total Yield"
+        "name": "PV3 totale opbrengst"
       },
       "pv4_power": {
-        "name": "PV4 Input Power"
+        "name": "PV4-ingangsvermogen"
       },
       "pv4_cumulative_energy": {
-        "name": "PV4 Total Yield"
+        "name": "PV4 totale opbrengst"
       }
     },
     "binary_sensor": {
       "system_status_standby": {
-        "name": "System–Standby",
+        "name": "Systeem–Standby",
         "state": {
           "on": "Standby",
-          "off": "Not in standby"
+          "off": "Niet in standby"
         }
       },
       "system_status_fault": {
-        "name": "System–Fault"
+        "name": "Systeem–Fout"
       },
       "system_status_charging": {
-        "name": "System–Charging",
+        "name": "Systeem–Opladen",
         "state": {
-          "on": "Charging",
-          "off": "Not charging"
+          "on": "Opladen",
+          "off": "Niet opladen"
         }
       },
       "system_status_discharging": {
-        "name": "System–Discharging",
+        "name": "Systeem–Ontladen",
         "state": {
-          "on": "Discharging",
-          "off": "Not discharging"
+          "on": "Ontladen",
+          "off": "Niet ontladen"
         }
       }
     },
     "number": {
       "grid_charge_power_limit": {
-        "name": "AC Charge Power Limit"
+        "name": "AC-laadvermogenlimiet"
       },
       "battery_discharge_power_limit": {
-        "name": "AC Discharge Power Limit"
+        "name": "AC-Ontlaadvermogenlimiet"
       },
       "backup_soc": {
-        "name": "Backup SoC"
+        "name": "Back-up SoC"
       },
       "battery_target_power": {
-        "name": "Target Charge / Discharge Power"
+        "name": "Doel laad-/ontlaadvermogen"
       },
       "battery_cutoff_soc": {
-        "name": "Charge / Discharge Cut-off SoC"
+        "name": "Laad-/Ontlaad-uitschakel-SoC"
       }
     },
     "switch": {
       "off_grid_output_enable": {
-        "name": "Off-Grid Output Switch"
+        "name": "Off-grid uitgangsschakelaar"
       },
       "pv_curtailment_enable": {
-        "name": "PV Curtailment Switch"
+        "name": "PV-curtailmentschakelaar"
       }
     },
     "select": {
       "charge_discharge_direction": {
-        "name": "Charge / Discharge Direction",
+        "name": "Laad-/Ontlaadrichting",
         "state": {
-          "force_charge": "Force Charge",
-          "idle": "Idle",
-          "force_discharge": "Force Discharge"
+          "force_charge": "Geforceerd laden",
+          "idle": "Inactief",
+          "force_discharge": "Geforceerd ontladen"
         }
       }
     }

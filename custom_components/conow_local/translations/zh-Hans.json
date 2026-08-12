@@ -132,7 +132,7 @@
         "name": "交流充电功率限制"
       },
       "battery_discharge_power_limit": {
-        "name": "放电功率限制"
+        "name": "交流放电功率限制"
       },
       "backup_soc": {
         "name": "备电 SOC"
@@ -149,7 +149,7 @@
         "name": "离网输出开关"
       },
       "pv_curtailment_enable": {
-        "name": "PV 限发开关"
+        "name": "PV 弃光开关"
       }
     },
     "select": {

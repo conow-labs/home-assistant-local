@@ -26,79 +26,79 @@
   "entity": {
     "sensor": {
       "fault_code": {
-        "name": "Fault Code"
+        "name": "Fehlercode"
       },
       "battery_voltage": {
-        "name": "Battery Voltage"
+        "name": "Batteriespannung"
       },
       "battery_soc": {
-        "name": "Battery SoC"
+        "name": "Batterie-SoC"
       },
       "battery_design_capacity": {
-        "name": "Design Capacity"
+        "name": "Nennkapazität"
       },
       "battery_cell_temp_max": {
-        "name": "Max. Cell Temperature"
+        "name": "Max. Zelltemperatur"
       },
       "battery_cell_temp_min": {
-        "name": "Min. Cell Temperature"
+        "name": "Min. Zelltemperatur"
       },
       "battery_cumulative_charge_energy": {
-        "name": "Total Charge Energy"
+        "name": "Gesamte Ladeenergie"
       },
       "battery_cumulative_discharge_energy": {
-        "name": "Total Discharge Energy"
+        "name": "Gesamte Entladeenergie"
       },
       "grid_active_power": {
-        "name": "Grid Active Power"
+        "name": "Netz-Wirkleistung"
       },
       "grid_frequency": {
-        "name": "Grid Frequency"
+        "name": "Netzfrequenz"
       },
       "grid_cumulative_import_energy": {
-        "name": "Total Grid Import"
+        "name": "Gesamter Netzbezug"
       },
       "grid_cumulative_export_energy": {
-        "name": "Total Grid Export"
+        "name": "Gesamte Netzeinspeisung"
       },
       "backup_load_power": {
-        "name": "Bypass Power"
+        "name": "Bypass-Leistung"
       },
       "backup_load_cumulative_export_energy": {
-        "name": "Total Bypass Output"
+        "name": "Gesamter Bypass-Ausgang"
       },
       "backup_load_cumulative_import_energy": {
-        "name": "Total Bypass Input"
+        "name": "Gesamter Bypass-Eingang"
       },
       "pv_total_power": {
-        "name": "Total PV Input Power"
+        "name": "PV-Gesamteingangsleistung"
       },
       "pv_total_cumulative_energy": {
-        "name": "Total PV Yield"
+        "name": "Gesamter PV-Ertrag"
       },
       "pv1_power": {
-        "name": "PV1 Input Power"
+        "name": "PV1-Eingangsleistung"
       },
       "pv1_cumulative_energy": {
-        "name": "PV1 Total Yield"
+        "name": "PV1-Gesamtertrag"
       },
       "pv2_power": {
-        "name": "PV2 Input Power"
+        "name": "PV2-Eingangsleistung"
       },
       "pv2_cumulative_energy": {
-        "name": "PV2 Total Yield"
+        "name": "PV2-Gesamtertrag"
       },
       "pv3_power": {
-        "name": "PV3 Input Power"
+        "name": "PV3-Eingangsleistung"
       },
       "pv3_cumulative_energy": {
-        "name": "PV3 Total Yield"
+        "name": "PV3-Gesamtertrag"
       },
       "pv4_power": {
-        "name": "PV4 Input Power"
+        "name": "PV4-Eingangsleistung"
       },
       "pv4_cumulative_energy": {
-        "name": "PV4 Total Yield"
+        "name": "PV4-Gesamtertrag"
       }
     },
     "binary_sensor": {
@@ -106,59 +106,59 @@
         "name": "System–Standby",
         "state": {
           "on": "Standby",
-          "off": "Not in standby"
+          "off": "Nicht im Standby"
         }
       },
       "system_status_fault": {
-        "name": "System–Fault"
+        "name": "System–Fehler"
       },
       "system_status_charging": {
-        "name": "System–Charging",
+        "name": "System–Lädt",
         "state": {
-          "on": "Charging",
-          "off": "Not charging"
+          "on": "Lädt",
+          "off": "Lädt nicht"
         }
       },
       "system_status_discharging": {
-        "name": "System–Discharging",
+        "name": "System–Entlädt",
         "state": {
-          "on": "Discharging",
-          "off": "Not discharging"
+          "on": "Entlädt",
+          "off": "Entlädt nicht"
         }
       }
     },
     "number": {
       "grid_charge_power_limit": {
-        "name": "AC Charge Power Limit"
+        "name": "AC-Ladeleistungslimit"
       },
       "battery_discharge_power_limit": {
-        "name": "AC Discharge Power Limit"
+        "name": "AC-Entladeleistungslimit"
       },
       "backup_soc": {
-        "name": "Backup SoC"
+        "name": "Backup-SoC"
       },
       "battery_target_power": {
-        "name": "Target Charge / Discharge Power"
+        "name": "Ziel-Lade-/Entladeleistung"
       },
       "battery_cutoff_soc": {
-        "name": "Charge / Discharge Cut-off SoC"
+        "name": "Lade-/Entlade-Abschalt-SoC"
       }
     },
     "switch": {
       "off_grid_output_enable": {
-        "name": "Off-Grid Output Switch"
+        "name": "Off-Grid-Ausgangsschalter"
       },
       "pv_curtailment_enable": {
-        "name": "PV Curtailment Switch"
+        "name": "PV-Abregelungsschalter"
       }
     },
     "select": {
       "charge_discharge_direction": {
-        "name": "Charge / Discharge Direction",
+        "name": "Lade-/Entladerichtung",
         "state": {
-          "force_charge": "Force Charge",
-          "idle": "Idle",
-          "force_discharge": "Force Discharge"
+          "force_charge": "Zwangsladung",
+          "idle": "Leerlauf",
+          "force_discharge": "Zwangsentladung"
         }
       }
     }
