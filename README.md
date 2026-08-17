@@ -16,26 +16,17 @@ Complete **all** of the following before adding the integration.
 
 ### 1. Activate the device in the App
 
-The device must be commissioned and online in the **CONOW ECO App** at least once. RS-485 will not work on a factory-fresh device that has never been activated.
+The device must be commissioned and online in the **CONOW ECO App** at least once before the RS-485 interface becomes operational. RS-485 will not work on a factory-fresh device that has never been activated.
 
-### 2. Enable DIY Mode in the App
+### 2. Enable external control in the App
 
-Modbus RTU is disabled until you turn on external control in the app. Use **one** of the following:
+Modbus RTU is disabled until you turn on external control in the app:
 
-**Option A — DIY Mode (recommended)**
+1. Open **CONOW ECO App** → **Devices** tab
+2. Tap your device to enter the device panel → **Settings**
+3. Toggle on **Enable External Control / ModBus RTU**
 
-1. Open **CONOW ECO App** → **Devices**
-2. Tap your device to open the device panel
-3. Go to **Settings → Operation Mode**
-4. Select **DIY Mode**
-
-**Option B — Enable External Control**
-
-1. Open **CONOW ECO App** → **Devices**
-2. Tap your device → **Settings**
-3. Turn on **Enable External Control**
-
-Until DIY Mode or External Control is enabled, the device will not respond to Modbus commands.
+The RS-485 interface will not respond to any Modbus commands until this is enabled.
 
 ### 3. RS-485 wiring
 
@@ -45,13 +36,17 @@ Connect an RS-485 to USB adapter between the Home Assistant host and the device 
 
 Use the factory defaults unless you have changed them in manufacturer setup software:
 
-| Parameter | Value |
-|-----------|-------|
-| Baud rate | **38400** |
-| Data bits | 8 |
-| Parity | None |
-| Stop bits | 1 (8N1) |
+
+| Parameter     | Value                  |
+| ------------- | ---------------------- |
+| Baud rate     | **38400**              |
+| Data bits     | 8                      |
+| Parity        | None                   |
+| Stop bits     | 1 (8N1)                |
 | Slave address | **160** (hex **0xA0**) |
+
+
+
 
 ## Install (HACS)
 
@@ -59,16 +54,22 @@ Use the factory defaults unless you have changed them in manufacturer setup soft
 2. Install **Conow Local**
 3. Restart Home Assistant
 
+
+
 ## Configure
 
 **Settings → Devices & Services → Add Integration → Conow Local**
 
-| Field | Value |
-|-------|-------|
-| Device name | Any label you prefer |
-| Serial port | Host path, e.g. `/dev/ttyUSB0` (Linux), `/dev/cu.usbserial-130` (macOS) |
-| Slave address | **`160`** |
-| Baud rate | **`38400`** |
+
+| Field         | Value                                                                   |
+| ------------- | ----------------------------------------------------------------------- |
+| Device name   | Any label you prefer                                                    |
+| Serial port   | Host path, e.g. `/dev/ttyUSB0` (Linux), `/dev/cu.usbserial-130` (macOS) |
+| Slave address | `160`                                                                   |
+| Baud rate     | `38400`                                                                 |
+
+
+
 
 ### Finding the serial port
 
@@ -93,7 +94,7 @@ Common paths: `/dev/ttyUSB0`, `/dev/ttyACM0`.
 ls /dev/cu.*
 ```
 
-Prefer **`/dev/cu.*`** over `/dev/tty.*` — `cu` devices are call-out ports suitable for Modbus masters. Common names: `/dev/cu.usbserial-*`, `/dev/cu.wchusbserial*`, `/dev/cu.SLAB_USBtoUART`.
+Prefer `/dev/cu.*` over `/dev/tty.*` — `cu` devices are call-out ports suitable for Modbus masters. Common names: `/dev/cu.usbserial-*`, `/dev/cu.wchusbserial*`, `/dev/cu.SLAB_USBtoUART`.
 
 **Home Assistant in Docker**
 
@@ -105,20 +106,26 @@ Ensure USB passthrough is enabled for the adapter in your hypervisor or host set
 
 If setup fails with *cannot connect*, or sensor values look wrong (e.g. extremely large numbers), check:
 
-1. DIY Mode (or External Control) is **on** in the App
-2. Slave address is **`160`** and baud rate is **`38400`**
+1. **Enable External Control / ModBus RTU** is on in the App
+2. Slave address is `160` and baud rate is `38400`
 3. Only one program is using the serial port at a time
 4. RS-485 A/B wiring and USB adapter driver are correct
 
+
+
 ## Polling & control read-back
+
+
 
 ### Scheduled polling (automatic read)
 
 The integration polls the device on a fixed interval and refreshes all entities:
 
-| Constant | Default | Meaning |
-|----------|---------|---------|
+
+| Constant               | Default | Meaning                                                        |
+| ---------------------- | ------- | -------------------------------------------------------------- |
 | `MODBUS_POLL_INTERVAL` | **5 s** | Background read of monitoring + control registers (`read_all`) |
+
 
 Protocol docs require a polling interval of **at least 2 s**; the default is **5 s** to reduce RS-485 bus load when communication is unstable.
 
@@ -126,6 +133,8 @@ Each poll issues two Modbus reads (FC `0x03`):
 
 1. Registers **10000–10036** (monitoring)
 2. After **0.15 s** inter-frame delay → registers **10100–10107** (control)
+
+
 
 ### After a control write (UI / service call)
 
