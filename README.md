@@ -28,6 +28,8 @@ Modbus RTU is disabled until you turn on external control in the app:
 
 The RS-485 interface will not respond to any Modbus commands until this is enabled.
 
+**Lyra** and **Atlas** are already released. The **CBE** panel ships end of August.
+
 ### 3. RS-485 wiring
 
 Connect an RS-485 to USB adapter between the Home Assistant host and the device RS-485 port (A/B polarity must match the device label).
