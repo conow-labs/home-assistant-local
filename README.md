@@ -252,19 +252,19 @@ Add `"new_metric": { "name": "..." }` under `entity.sensor` in all three transla
 
 ## Q&A
 
-### Why do App DIY settings seem to have no effect while Home Assistant is connected?
+### Why do App settings seem to have no effect while Home Assistant is connected?
 
 The firmware runs **two independent control paths** that are **not merged**:
 
 | Path | Description |
 |------|-------------|
 | **Modbus real-time control** | Registers **10100–10107** (and related monitoring reads). Used by this integration and other EMS hosts over RS-485. |
-| **5003–5007 target-driven logic** | Platform / App **DIY** schedule and target parameters (cloud or App-side strategy). |
+| **App / cloud target-driven logic** | Platform or App schedule and target parameters. |
 
 **Modbus priority rule (firmware behaviour):**
 
-- While **Modbus communication is active**, the device **only follows Modbus commands**. Platform/App **DIY instructions are not applied**.
-- After **Modbus communication ends** (serial unplugged, host stopped polling, or bus idle long enough for the firmware to drop the link), the device **falls back to DIY self-consumption mode** by default.
+- While **Modbus communication is active**, the device **only follows Modbus commands**. App / cloud instructions are not applied.
+- After **Modbus communication ends** (serial unplugged, host stopped polling, or bus idle long enough for the firmware to drop the link), the device **falls back to App / self-consumption mode** by default.
 
 **Practical implications for `conow_local` users:**
 
