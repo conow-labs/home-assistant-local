@@ -268,7 +268,7 @@ The firmware runs **two independent control paths** that are **not merged**:
 
 **Practical implications for `conow_local` users:**
 
-1. Keep **DIY Mode** or **External Control** enabled in the App (required for Modbus to work at all), but expect **runtime control** to come from Home Assistant while the integration is polling.
+1. Keep **Enable External Control / ModBus RTU** on in the App (required for Modbus to work at all), but expect **runtime control** to come from Home Assistant while the integration is polling.
 2. To let the App / cloud strategy drive the device again, **stop Home Assistant from holding the serial port** (disable/reload the integration, or disconnect RS-485).
 3. Do not assume App slider changes and Modbus writes “add up” — only one path is active at a time.
 

@@ -9,7 +9,7 @@
   },
   "config": {
     "error": {
-      "cannot_connect": "无法通过 Modbus RTU 连接，请检查串口、接线、DIY/外部控制模式及从站地址。"
+      "cannot_connect": "无法通过 Modbus RTU 连接，请检查串口、接线、是否开启「启用外部控制 / ModBus RTU」及从站地址。"
     },
     "step": {
       "user": {
@@ -19,7 +19,7 @@
           "modbus_slave": "从站地址",
           "modbus_baudrate": "波特率"
         },
-        "description": "默认 **38400 8N1**、从站 **0xA0**。请先在 Conow App 中开启 **DIY 模式** 或 **外部控制**。"
+        "description": "默认 **38400 8N1**、从站 **0xA0**。请先在 Conow App 中开启 **启用外部控制 / ModBus RTU**。"
       }
     }
   },

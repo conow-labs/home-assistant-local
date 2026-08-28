@@ -188,8 +188,9 @@ class ConowModbusClient:
                     self._reconnect_after_error()
         msg = (
             f"Read failed after {MAX_RETRIES} attempts (slave={self._slave}, "
-            f"port={self._port}): device sent no Modbus reply — check DIY Mode, "
-            f"RS-485 wiring, and slave/baud (160 / 38400)"
+            f"port={self._port}): device sent no Modbus reply — check "
+            f"Enable External Control / ModBus RTU, RS-485 wiring, "
+            f"and slave/baud (160 / 38400)"
         )
         raise ConowModbusError(msg) from last_error
 

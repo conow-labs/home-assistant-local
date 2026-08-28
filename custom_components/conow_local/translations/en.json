@@ -9,7 +9,7 @@
   },
   "config": {
     "error": {
-      "cannot_connect": "Unable to connect over Modbus RTU. Check serial port, wiring, DIY/external control mode, and slave address."
+      "cannot_connect": "Unable to connect over Modbus RTU. Check serial port, wiring, Enable External Control / ModBus RTU, and slave address."
     },
     "step": {
       "user": {
@@ -19,7 +19,7 @@
           "modbus_slave": "Slave address",
           "modbus_baudrate": "Baud rate"
         },
-        "description": "Connect over RS-485 with **38400 8N1** by default (slave **0xA0**). Enable **DIY Mode** or **External Control** in the Conow app before continuing."
+        "description": "Connect over RS-485 with **38400 8N1** by default (slave **0xA0**). Enable **External Control / ModBus RTU** in the Conow app before continuing."
       }
     }
   },
