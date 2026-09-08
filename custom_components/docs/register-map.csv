@@ -1,0 +1,44 @@
+实现状态,name,code,地址_dec,地址_hex,HA平台,读写,值含义说明
+部分,系统状态,system_status,10000,0x2710,binary_sensor×5,只读,原始 uint16 位掩码; 未暴露独立 sensor
+部分,待机,standby,10000,0x2710,binary_sensor,只读,bit0: 1=待机
+部分,运行中,running,10000,0x2710,binary_sensor,只读,bit1: 1=运行
+部分,故障,fault,10000,0x2710,binary_sensor,只读,bit2: 1=故障(详见 fault_code)
+部分,充电中,charging,10000,0x2710,binary_sensor,只读,bit3: 1=充电中
+部分,放电中,discharging,10000,0x2710,binary_sensor,只读,bit4: 1=放电中
+未实现,（保留位）,,10000,0x2710,,只读,bit5–15 Reserved
+已实现,故障码,fault_code,10001,0x2711,sensor,只读,
+已实现,电池电压,battery_voltage,10002,0x2712,sensor,只读,scale 0.01 V
+已实现,电池 SOC,battery_soc,10003,0x2713,sensor,只读,0–100 %
+已实现,电池设计容量,battery_design_capacity,10004,0x2714,sensor,只读,raw 为 Wh，scale 0.001 → kWh
+已实现,电芯最高温度,cell_temp_max,10005,0x2715,sensor,只读,offset 500 scale 0.1 °C
+已实现,电芯最低温度,cell_temp_min,10006,0x2716,sensor,只读,offset 500 scale 0.1 °C
+已实现,电池累计充电电量,battery_cumulative_charge_energy,10007,0x2717,sensor,只读,uint32 占 10007–10008
+已实现,电池累计放电电量,battery_cumulative_discharge_energy,10009,0x2719,sensor,只读,uint32 占 10009–10010
+已实现,电网有功功率,grid_active_power,10011,0x271B,sensor,只读,int16 W; 正=馈电 负=取电
+已实现,电网频率,grid_frequency,10012,0x271C,sensor,只读,scale 0.01 Hz
+已实现,累计电网取电电量,cumulative_grid_import_energy,10013,0x271D,sensor,只读,uint32 占 10013–10014
+已实现,累计电网馈电电量,cumulative_grid_export_energy,10015,0x271F,sensor,只读,uint32 占 10015–10016
+已实现,旁路功率,bypass_power,10017,0x2721,sensor,只读,int16 W
+已实现,旁路累计输出电量,bypass_cumulative_output_energy,10018,0x2722,sensor,只读,uint32 占 10018–10019
+已实现,旁路累计输入电量,bypass_cumulative_input_energy,10020,0x2724,sensor,只读,uint32 占 10020–10021
+已实现,PV 总输入功率,pv_total_input_power,10022,0x2726,sensor,只读,
+已实现,PV 累计总发电量,pv_cumulative_total_energy,10023,0x2727,sensor,只读,uint32 占 10023–10024
+已实现,PV1 输入功率,pv1_input_power,10025,0x2729,sensor,只读,
+已实现,PV1 累计发电量,pv1_cumulative_energy,10026,0x272A,sensor,只读,uint32 占 10026–10027
+已实现,PV2 输入功率,pv2_input_power,10028,0x272C,sensor,只读,
+已实现,PV2 累计发电量,pv2_cumulative_energy,10029,0x272D,sensor,只读,uint32 占 10029–10030
+已实现,PV3 输入功率,pv3_input_power,10031,0x272F,sensor,只读,
+已实现,PV3 累计发电量,pv3_cumulative_energy,10032,0x2730,sensor,只读,uint32 占 10032–10033
+已实现,PV4 输入功率,pv4_input_power,10034,0x2732,sensor,只读,
+已实现,PV4 累计发电量,pv4_cumulative_energy,10035,0x2733,sensor,只读,uint32 占 10035–10036
+已实现,交流充电功率限制,ac_charge_power_limit,10100,0x2774,number,读写,W
+已实现,放电功率限制,discharge_power_limit,10101,0x2775,number,读写,W
+已实现,备电 SOC,backup_soc,10102,0x2776,number,读写,0–100 %
+已实现,离网输出开关,off_grid_output_switch,10103,0x2777,switch,读写,0=关 1=开
+已实现,PV 限发开关,pv_curtailment_switch,10104,0x2778,switch,读写,0=关 1=开
+已实现,充放电方向,charge_discharge_direction,10105,0x2779,select,读写,见下行取值
+已实现,空闲,idle,10105,0x2779,select,读写,写入值 0
+已实现,强制充电,force_charge,10105,0x2779,select,读写,写入值 1
+已实现,强制放电,force_discharge,10105,0x2779,select,读写,写入值 2
+已实现,目标充放电功率,target_charge_discharge_power,10106,0x277A,number,读写,W; 配合 10105
+已实现,充放电截止 SOC,charge_discharge_cutoff_soc,10107,0x277B,number,读写,0–100 %; 配合 10105
