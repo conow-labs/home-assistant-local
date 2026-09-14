@@ -1,5 +1,6 @@
 """Config flow for Conow Local."""
 
+from functools import partial
 from typing import Any
 
 import voluptuous as vol
@@ -93,7 +94,7 @@ class ConowLocalConfigFlow(ConfigFlow, domain=DOMAIN):
             self._abort_if_unique_id_configured()
             try:
                 await self.hass.async_add_executor_job(
-                    probe_connection, port, slave=slave, baudrate=baudrate
+                    partial(probe_connection, port, slave=slave, baudrate=baudrate)
                 )
             except ConowModbusError:
                 errors["base"] = "cannot_connect"
@@ -135,7 +136,13 @@ class ConowLocalConfigFlow(ConfigFlow, domain=DOMAIN):
             self._abort_if_unique_id_configured()
             try:
                 await self.hass.async_add_executor_job(
-                    probe_connection, None, host=host, tcp_port=tcp_port, slave=slave
+                    partial(
+                        probe_connection,
+                        None,
+                        host=host,
+                        tcp_port=tcp_port,
+                        slave=slave,
+                    )
                 )
             except ConowModbusError:
                 errors["base"] = "cannot_connect"
