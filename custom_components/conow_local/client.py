@@ -1,4 +1,4 @@
-"""CONOW Balcony Solar Storage — Modbus RTU client."""
+"""CONOW Balcony Solar Storage — Modbus RTU/TCP client."""
 
 from __future__ import annotations
 
@@ -7,9 +7,10 @@ import struct
 import time
 from typing import Any
 
-from pymodbus.client import ModbusSerialClient
+from pymodbus.client import ModbusSerialClient, ModbusTcpClient
 from pymodbus.exceptions import ModbusException
 
+from .const import DEFAULT_TCP_PORT, MODBUS_MODE_RTU, MODBUS_MODE_TCP
 from .register_map import (
     CONTROL_COUNT,
     CONTROL_REGISTERS,
@@ -83,52 +84,103 @@ def _write_register_request_frame(slave: int, address: int, value: int) -> bytes
     return _build_rtu_frame(slave, 0x06, payload)
 
 
+def _build_tcp_frame(transaction_id: int, slave: int, function_code: int, payload: bytes) -> bytes:
+    """Build a Modbus TCP frame (MBAP header + PDU, no CRC)."""
+    header = struct.pack(">HHHB", transaction_id, 0, len(payload) + 2, slave & 0xFF)
+    return header + bytes([function_code & 0xFF]) + payload
+
+
+def _read_holding_request_tcp_frame(slave: int, address: int, count: int) -> bytes:
+    """Build FC 0x03 read holding registers TCP request (indicative TX log)."""
+    return _build_tcp_frame(0, slave, 0x03, struct.pack(">HH", address, count))
+
+
+def _write_register_request_tcp_frame(slave: int, address: int, value: int) -> bytes:
+    """Build FC 0x06 write single register TCP request (indicative TX log)."""
+    return _build_tcp_frame(0, slave, 0x06, struct.pack(">HH", address, value & 0xFFFF))
+
+
 class ConowModbusError(Exception):
     """Raised when Modbus communication fails."""
 
 
 class ConowModbusClient:
-    """Local Modbus RTU client for CONOW balcony solar storage devices."""
+    """Local Modbus client (RTU serial or TCP) for CONOW devices."""
 
     def __init__(
         self,
-        port: str,
+        port: str | None = None,
         *,
+        host: str | None = None,
+        tcp_port: int = DEFAULT_TCP_PORT,
         slave: int = DEFAULT_SLAVE,
         baudrate: int = DEFAULT_BAUDRATE,
         timeout: float = DEFAULT_TIMEOUT_S,
     ) -> None:
-        """Initialize serial Modbus client (38400 8N1 by default)."""
+        """Initialize client: TCP when host is given, RTU serial otherwise.
+
+        Serial defaults to 38400 8N1; TCP targets a RS-485↔Ethernet adapter.
+        """
         self._slave = slave
+        self._mode = MODBUS_MODE_TCP if host is not None else MODBUS_MODE_RTU
         self._port = port
-        self._client = ModbusSerialClient(
-            port=port,
-            framer="rtu",
-            baudrate=baudrate,
-            bytesize=8,
-            parity="N",
-            stopbits=1,
-            timeout=timeout,
-            retries=0,
-        )
+        self._host = host
+        if self._mode == MODBUS_MODE_TCP:
+            self._tcp_port = tcp_port
+            # Log label mirrors what the adapter sees on the RS-485 side.
+            self._endpoint = f"{host}:{tcp_port}"
+            self._client: ModbusSerialClient | ModbusTcpClient = ModbusTcpClient(
+                host=host,
+                port=tcp_port,
+                timeout=timeout,
+                retries=0,
+            )
+        else:
+            if port is None:
+                raise ConowModbusError("RTU mode requires a serial port")
+            self._tcp_port = DEFAULT_TCP_PORT
+            self._endpoint = port
+            self._client = ModbusSerialClient(
+                port=port,
+                framer="rtu",
+                baudrate=baudrate,
+                bytesize=8,
+                parity="N",
+                stopbits=1,
+                timeout=timeout,
+                retries=0,
+            )
+
+    @property
+    def mode(self) -> str:
+        """Return the connection mode ('rtu' or 'tcp')."""
+        return self._mode
 
     def connect(self) -> None:
-        """Open the serial connection."""
+        """Open the connection."""
         if not self._client.connect():
+            if self._mode == MODBUS_MODE_TCP:
+                raise ConowModbusError(
+                    f"Failed to connect to {self._host}:{self._tcp_port}"
+                )
             raise ConowModbusError(f"Failed to open serial port {self._port}")
         self._flush_input_buffer()
 
     def _flush_input_buffer(self) -> None:
-        """Discard stale bytes before the next Modbus frame."""
+        """Discard stale bytes before the next Modbus frame (serial only)."""
         serial_port = getattr(self._client, "socket", None)
         if serial_port is not None and hasattr(serial_port, "reset_input_buffer"):
             serial_port.reset_input_buffer()
 
     def _reconnect_after_error(self) -> None:
-        """Close and reopen serial after I/O failure."""
+        """Close and reopen the connection after I/O failure."""
         self._client.close()
         time.sleep(RETRY_INTERVAL_S)
         if not self._client.connect():
+            if self._mode == MODBUS_MODE_TCP:
+                raise ConowModbusError(
+                    f"Failed to reconnect to {self._host}:{self._tcp_port}"
+                )
             raise ConowModbusError(f"Failed to reopen serial port {self._port}")
         self._flush_input_buffer()
 
@@ -151,7 +203,10 @@ class ConowModbusClient:
         for attempt in range(1, MAX_RETRIES + 1):
             try:
                 self._flush_input_buffer()
-                tx_frame = _read_holding_request_frame(self._slave, address, count)
+                if self._mode == MODBUS_MODE_TCP:
+                    tx_frame = _read_holding_request_tcp_frame(self._slave, address, count)
+                else:
+                    tx_frame = _read_holding_request_frame(self._slave, address, count)
                 _LOGGER.debug(
                     "Modbus read TX (FC 0x03): %s",
                     _format_rtu_hex(tx_frame),
@@ -186,12 +241,21 @@ class ConowModbusClient:
                 )
                 if attempt < MAX_RETRIES:
                     self._reconnect_after_error()
-        msg = (
-            f"Read failed after {MAX_RETRIES} attempts (slave={self._slave}, "
-            f"port={self._port}): device sent no Modbus reply — check "
-            f"Enable External Control / ModBus RTU, RS-485 wiring, "
-            f"and slave/baud (160 / 38400)"
-        )
+        if self._mode == MODBUS_MODE_TCP:
+            msg = (
+                f"Read failed after {MAX_RETRIES} attempts (slave={self._slave}, "
+                f"tcp={self._host}:{self._tcp_port}): device sent no Modbus "
+                f"reply — check Enable External Control / ModBus RTU, the "
+                f"RS-485↔Ethernet adapter (server IP / port {DEFAULT_TCP_PORT}), "
+                f"and its serial settings (slave 160 / 38400 8N1)"
+            )
+        else:
+            msg = (
+                f"Read failed after {MAX_RETRIES} attempts (slave={self._slave}, "
+                f"port={self._port}): device sent no Modbus reply — check "
+                f"Enable External Control / ModBus RTU, RS-485 wiring, "
+                f"and slave/baud (160 / 38400)"
+            )
         raise ConowModbusError(msg) from last_error
 
     def write_register(self, address: int, value: int) -> None:
@@ -200,7 +264,10 @@ class ConowModbusClient:
         for attempt in range(1, MAX_RETRIES + 1):
             try:
                 self._flush_input_buffer()
-                tx_frame = _write_register_request_frame(self._slave, address, value)
+                if self._mode == MODBUS_MODE_TCP:
+                    tx_frame = _write_register_request_tcp_frame(self._slave, address, value)
+                else:
+                    tx_frame = _write_register_request_frame(self._slave, address, value)
                 _LOGGER.info(
                     "Modbus write TX (FC 0x06): %s",
                     _format_rtu_hex(tx_frame),
@@ -234,13 +301,17 @@ class ConowModbusClient:
                 )
                 if attempt < MAX_RETRIES:
                     self._reconnect_after_error()
+        if self._mode == MODBUS_MODE_TCP:
+            err_frame = _write_register_request_tcp_frame(self._slave, address, value)
+        else:
+            err_frame = _write_register_request_frame(self._slave, address, value)
         _LOGGER.error(
-            "Modbus write failed: slave=%s port=%s addr=%s value=%s TX=%s err=%s",
+            "Modbus write failed: slave=%s endpoint=%s addr=%s value=%s TX=%s err=%s",
             self._slave,
-            self._port,
+            self._endpoint,
             address,
             value,
-            _format_rtu_hex(_write_register_request_frame(self._slave, address, value)),
+            _format_rtu_hex(err_frame),
             last_error,
         )
         raise ConowModbusError(
@@ -406,8 +477,17 @@ def decode_system_status(raw: int) -> dict[str, bool]:
     }
 
 
-def probe_connection(port: str, slave: int, baudrate: int) -> None:
+def probe_connection(
+    port: str | None = None,
+    *,
+    host: str | None = None,
+    tcp_port: int = DEFAULT_TCP_PORT,
+    slave: int = DEFAULT_SLAVE,
+    baudrate: int = DEFAULT_BAUDRATE,
+) -> None:
     """Verify Modbus connectivity by reading battery SOC."""
     soc_address = REGISTERS_BY_NAME["battery_soc"].address
-    with ConowModbusClient(port, slave=slave, baudrate=baudrate) as client:
+    with ConowModbusClient(
+        port, host=host, tcp_port=tcp_port, slave=slave, baudrate=baudrate
+    ) as client:
         client.read_holding_registers(soc_address, 1)

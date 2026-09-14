@@ -9,17 +9,35 @@
   },
   "config": {
     "error": {
-      "cannot_connect": "Unable to connect over Modbus RTU. Check serial port, wiring, Enable External Control / ModBus RTU, and slave address."
+      "cannot_connect": "Verbindung über Modbus nicht möglich. Prüfe Verbindung, „Externen Steuerung / ModBus RTU“ und Slave-Adresse."
     },
     "step": {
       "user": {
+        "title": "Verbindungsart",
+        "description": "Wähle, wie das Gerät erreicht wird: RS-485 seriell oder Modbus TCP über einen RS-485↔Ethernet-Adapter.",
         "data": {
-          "device_name": "Device name",
-          "modbus_port": "Serial port",
-          "modbus_slave": "Slave address",
-          "modbus_baudrate": "Baud rate"
+          "modbus_mode": "Verbindungsart"
+        }
+      },
+      "rtu": {
+        "title": "Modbus RTU (seriell)",
+        "data": {
+          "device_name": "Gerätename",
+          "modbus_port": "Serieller Anschluss",
+          "modbus_slave": "Slave-Adresse",
+          "modbus_baudrate": "Baudrate"
         },
-        "description": "Connect over RS-485 with **38400 8N1** by default (slave **0xA0**). Enable **External Control / ModBus RTU** in the Conow app before continuing."
+        "description": "Standardmäßig RS-485 mit **38400 8N1** (Slave **0xA0**). Vor dem Fortsetzen **Externe Steuerung / ModBus RTU** in der Conow-App aktivieren."
+      },
+      "tcp": {
+        "title": "Modbus TCP (Ethernet-Adapter)",
+        "data": {
+          "device_name": "Gerätename",
+          "modbus_host": "Host / IP-Adresse",
+          "modbus_tcp_port": "TCP-Port",
+          "modbus_slave": "Slave-Adresse"
+        },
+        "description": "Verbinde dich mit deinem RS-485↔Ethernet-Adapter (TCP-Port standardmäßig **502**, Slave **0xA0**). Der Adapter wandelt Modbus TCP in RTU um — am Gerät ist nichts zu ändern."
       }
     }
   },

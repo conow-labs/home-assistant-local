@@ -9,10 +9,18 @@
   },
   "config": {
     "error": {
-      "cannot_connect": "无法通过 Modbus RTU 连接，请检查串口、接线、是否开启「启用外部控制 / ModBus RTU」及从站地址。"
+      "cannot_connect": "无法通过 Modbus 连接，请检查连接方式、是否开启「启用外部控制 / ModBus RTU」及从站地址。"
     },
     "step": {
       "user": {
+        "title": "连接方式",
+        "description": "选择连接设备的方式：RS-485 串口，或通过 485 转以太网适配器的 Modbus TCP。",
+        "data": {
+          "modbus_mode": "连接方式"
+        }
+      },
+      "rtu": {
+        "title": "Modbus RTU（串口）",
         "data": {
           "device_name": "设备名称",
           "modbus_port": "串口",
@@ -20,6 +28,16 @@
           "modbus_baudrate": "波特率"
         },
         "description": "默认 **38400 8N1**、从站 **0xA0**。请先在 Conow App 中开启 **启用外部控制 / ModBus RTU**。"
+      },
+      "tcp": {
+        "title": "Modbus TCP（以太网适配器）",
+        "data": {
+          "device_name": "设备名称",
+          "modbus_host": "主机 / IP 地址",
+          "modbus_tcp_port": "TCP 端口",
+          "modbus_slave": "从站地址"
+        },
+        "description": "连接你的 485 转以太网适配器（默认 TCP 端口 **502**，从站 **0xA0**）。适配器会把 Modbus TCP 转换为 RTU，设备端无需任何改动。"
       }
     }
   },

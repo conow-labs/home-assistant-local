@@ -13,27 +13,41 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .client import POST_WRITE_DELAY_S, ConowModbusClient, ConowModbusError
+from .register_map import DEFAULT_BAUDRATE
 from .const import (
     CONF_MODBUS_BAUDRATE,
+    CONF_MODBUS_HOST,
+    CONF_MODBUS_MODE,
     CONF_MODBUS_PORT,
     CONF_MODBUS_SLAVE,
+    CONF_MODBUS_TCP_PORT,
+    DEFAULT_TCP_PORT,
     DOMAIN,
     LOGGER,
     MODBUS_POLL_INTERVAL,
+    MODBUS_MODE_TCP,
 )
 
 _T = TypeVar("_T")
 
 
 class ConowLocalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Poll CONOW device over Modbus RTU."""
+    """Poll CONOW device over Modbus RTU or TCP."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize coordinator."""
         self.entry = entry
-        self.port = entry.data[CONF_MODBUS_PORT]
+        self.mode = entry.data.get(CONF_MODBUS_MODE, "rtu")
         self.slave = entry.data[CONF_MODBUS_SLAVE]
-        self.baudrate = entry.data[CONF_MODBUS_BAUDRATE]
+        if self.mode == MODBUS_MODE_TCP:
+            self.host = entry.data[CONF_MODBUS_HOST]
+            self.tcp_port = entry.data.get(CONF_MODBUS_TCP_PORT, DEFAULT_TCP_PORT)
+            self.port = None
+            self.baudrate = None
+        else:
+            self.host = None
+            self.port = entry.data[CONF_MODBUS_PORT]
+            self.baudrate = entry.data[CONF_MODBUS_BAUDRATE]
         self._lock = threading.Lock()
         self._client: ConowModbusClient | None = None
         super().__init__(
@@ -44,12 +58,14 @@ class ConowLocalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
 
     def _connect(self) -> ConowModbusClient:
-        """Open or reuse the serial Modbus client."""
+        """Open or reuse the Modbus client (serial or TCP)."""
         if self._client is None:
             client = ConowModbusClient(
                 self.port,
+                host=self.host,
+                tcp_port=self.tcp_port if self.host is not None else DEFAULT_TCP_PORT,
                 slave=self.slave,
-                baudrate=self.baudrate,
+                baudrate=self.baudrate or DEFAULT_BAUDRATE,
             )
             client.connect()
             self._client = client

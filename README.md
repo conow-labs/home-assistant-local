@@ -1,6 +1,6 @@
 # Conow Local for Home Assistant
 
-Local **Modbus RTU** integration for CONOW balcony-solar / all-in-one energy devices (Lyra, CBE, Atlas). No cloud account required.
+Local **Modbus RTU / TCP** integration for CONOW balcony-solar / all-in-one energy devices (Lyra, CBE, Atlas). No cloud account required.
 
 Protocol reference: [developer-docs/modbus/balcony-solar-storage.md](https://github.com/conow-labs/developer-docs/blob/main/modbus/balcony-solar-storage.md)
 
@@ -60,6 +60,9 @@ Use the factory defaults unless you have changed them in manufacturer setup soft
 
 **Settings → Devices & Services → Add Integration → Conow Local**
 
+First choose the connection type — **Modbus RTU (RS-485 serial)** or **Modbus TCP (RS-485↔Ethernet adapter)**.
+
+### Modbus RTU (serial)
 
 | Field         | Value                                                                   |
 | ------------- | ----------------------------------------------------------------------- |
@@ -67,6 +70,22 @@ Use the factory defaults unless you have changed them in manufacturer setup soft
 | Serial port   | Host path, e.g. `/dev/ttyUSB0` (Linux), `/dev/cu.usbserial-130` (macOS) |
 | Slave address | `160`                                                                   |
 | Baud rate     | `38400`                                                                 |
+
+### Modbus TCP (Ethernet adapter)
+
+For an **RS-485↔Ethernet converter** (Modbus TCP gateway). The adapter converts Modbus TCP to RTU — the device firmware and its RS-485 settings stay unchanged.
+
+| Field           | Value                                  |
+| --------------- | -------------------------------------- |
+| Device name     | Any label you prefer                   |
+| Host / IP       | Adapter IP, e.g. `192.168.1.50`        |
+| TCP port        | `502` (default Modbus TCP port)        |
+| Slave address   | `160`                                  |
+
+Notes:
+
+- The adapter must be a **Modbus TCP ↔ RTU gateway** (most 485-to-Ethernet converters are). Configure the adapter's serial side to the device defaults: **38400 8N1**, and it must pass through the unit ID (`160`).
+- **Enable External Control / ModBus RTU** in the Conow app is still required — the device sees plain RTU either way.
 
 
 

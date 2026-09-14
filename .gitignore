@@ -1,3 +1,5 @@
 .idea/
 .DS_Store
 custom_components/docs/
+__pycache__/
+*.pyc
