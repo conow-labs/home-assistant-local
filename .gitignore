@@ -3,3 +3,4 @@
 custom_components/docs/
 __pycache__/
 *.pyc
+nohup.out

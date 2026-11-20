@@ -1,7 +1,14 @@
 {
   "name": "Conow Local",
   "render_readme": true,
-  "domains": ["sensor", "binary_sensor", "number", "switch", "select"],
+  "domains": [
+    "sensor",
+    "binary_sensor",
+    "number",
+    "select",
+    "switch",
+    "time"
+  ],
   "homeassistant": "2026.6.0",
   "iot_class": "Local Polling",
   "content_in_root": false,

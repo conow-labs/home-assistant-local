@@ -1,25 +1,21 @@
-"""Modbus select entity for charge/discharge direction."""
+"""Select entities for writable enum registers of the active map."""
 
 from __future__ import annotations
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_DEVICE_NAME, DOMAIN
-from .coordinator import ConowLocalCoordinator
-from .entity_factory import build_select_description
-from .register_map import DIRECTION_IDLE, EntityDef, get_entities
+from .device.coordinator import ConowLocalCoordinator
+from .device.descriptions import build_device_info, build_select_description
+from .device.guard import async_refuse_device_write
+from .maps.entity_model import SELECT, EntitySpec, specs_for_platform
 
 
-class ConowModbusDirectionSelect(
-    CoordinatorEntity[ConowLocalCoordinator], SelectEntity
-):
-    """Select entity driven by registers.json."""
+class ConowSelect(CoordinatorEntity[ConowLocalCoordinator], SelectEntity):
+    """Writable enum shown on the device page; writes go through the panel."""
 
     _attr_has_entity_name = True
 
@@ -27,66 +23,27 @@ class ConowModbusDirectionSelect(
         self,
         coordinator: ConowLocalCoordinator,
         entry: ConfigEntry,
-        entity: EntityDef,
+        spec: EntitySpec,
     ) -> None:
         """Initialize select entity."""
         super().__init__(coordinator)
-        self._entity = entity
-        self._register_name = entity.register
-        self.entity_description = build_select_description(entity)
-        self._attr_unique_id = f"{entry.entry_id}_{entity.code}"
-        self._attr_options = list((entity.options or {}).keys())
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name=entry.data[CONF_DEVICE_NAME],
-            manufacturer="CONOW",
-            model="Balcony Solar Storage",
-        )
+        self._entry = entry
+        self._spec = spec
+        self.entity_description = build_select_description(spec)
+        self._attr_unique_id = f"{entry.entry_id}_{spec.unique_code}"
+        self._attr_device_info = build_device_info(coordinator.hass, entry)
 
     @property
     def current_option(self) -> str | None:
-        """Return current direction option."""
-        value = self.coordinator.get_register_value("control", self._register_name)
-        if value is None or not self._entity.options:
-            return None
-        raw = int(value)
-        for option, option_value in self._entity.options.items():
-            if option_value == raw:
-                return option
-        return None
+        """Return the map label of the current enum value."""
+        data = self.coordinator.data or {}
+        display = (data.get(self._spec.register.code) or {}).get("display")
+        options = list(self.entity_description.options or ())
+        return display if display in options else None
 
     async def async_select_option(self, option: str) -> None:
-        """Write selected direction to device."""
-        if not self._entity.options:
-            return
-        direction = self._entity.options[option]
-        if self._entity.write_handler == "force_mode":
-            power = int(
-                self.coordinator.get_register_value(
-                    "control", "battery_target_power"
-                )
-                or 0
-            )
-            cutoff = int(
-                self.coordinator.get_register_value(
-                    "control", "battery_cutoff_soc"
-                )
-                or 0
-            )
-            if direction != DIRECTION_IDLE:
-                if power <= 0:
-                    raise HomeAssistantError(
-                        translation_domain=DOMAIN,
-                        translation_key="force_mode_power_required",
-                    )
-                if not 1 <= cutoff <= 100:
-                    raise HomeAssistantError(
-                        translation_domain=DOMAIN,
-                        translation_key="force_mode_cutoff_required",
-                    )
-            await self.coordinator.async_write_force_mode(direction, power, cutoff)
-            return
-        await self.coordinator.async_write_register_raw(self._register_name, direction)
+        """Refuse single-register writes from the device page."""
+        async_refuse_device_write(self.hass, self._entry)
 
 
 async def async_setup_entry(
@@ -94,10 +51,11 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up Modbus select entities from registers.json."""
+    """Set up one select per writable enum register of the active map."""
     coordinator: ConowLocalCoordinator = entry.runtime_data
-    entities = [
-        ConowModbusDirectionSelect(coordinator, entry, entity_def)
-        for entity_def in get_entities("select")
-    ]
-    async_add_entities(entities)
+    async_add_entities(
+        ConowSelect(coordinator, entry, spec)
+        for spec in specs_for_platform(
+            coordinator.map_version, SELECT, coordinator.new_model
+        )
+    )

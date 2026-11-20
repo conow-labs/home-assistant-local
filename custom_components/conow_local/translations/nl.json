@@ -5,16 +5,25 @@
     },
     "force_mode_cutoff_required": {
       "message": "Set charge/discharge cutoff SOC between 1 and 100 before force charge or discharge."
+    },
+    "panel_write_required": {
+      "message": "Losse bedieningselementen schrijven niet direct naar het apparaat. Verzend de hele groep in het Conow Local paneel. {url}"
     }
   },
   "config": {
     "error": {
-      "cannot_connect": "Kan geen Modbus-verbinding maken. Controleer de verbinding, Externe besturing / ModBus RTU en het slave-adres."
+      "cannot_connect": "Kan geen Modbus-verbinding maken. Controleer de verbinding, Externe besturing / ModBus RTU en het slave-adres.",
+      "invalid_verify_code": "De verificatiecode moet uit precies 8 hexadecimale tekens bestaan.",
+      "tcp_connect_failed": "Kan geen TCP-verbinding openen. Controleer of het IP-adres klopt, de TCP-poort open is en Home Assistant in hetzelfde netwerk als het apparaat zit.",
+      "verification_failed": "Het apparaat heeft de verificatiecode geweigerd. Controleer de 8-tekens code op het apparaat en probeer opnieuw.",
+      "device_busy": "Het apparaat is al verbonden met een andere client (MAC-adres gewijzigd). Sluit de andere verbinding (Conow-app, RS-485-adapter of een andere Home Assistant-instantie) en probeer opnieuw.",
+      "verification_required": "Het apparaat vraagt om handmatig te verversen: de verificatiecode is niet meer geldig. Lees de actuele 8-tekens code van het apparaat en werk deze bij via Configureren.",
+      "external_control_disabled": "De RTU-schakelaar voor externe besturing van het apparaat staat uit. Schakel “Externe besturing / ModBus RTU” in het apparaatpaneel van de Conow-app in en probeer opnieuw."
     },
     "step": {
       "user": {
         "title": "Verbindingstype",
-        "description": "Kies hoe het apparaat bereikt wordt: RS-485 serieel, of Modbus TCP via een RS-485↔Ethernet-adapter.",
+        "description": "Kies hoe het apparaat bereikt wordt: RS-485 serieel, Modbus TCP via een RS-485↔Ethernet-adapter, of Modbus TCP rechtstreeks op het alles-in-één-apparaat.",
         "data": {
           "modbus_mode": "Verbindingstype"
         }
@@ -27,7 +36,7 @@
           "modbus_slave": "Slave-adres",
           "modbus_baudrate": "Baudsnelheid"
         },
-        "description": "Standaard RS-485 met **38400 8N1** (slave **0xA0**). Schakel eerst **Externe besturing / ModBus RTU** in de Conow-app in."
+        "description": "De lijst toont de op de Home Assistant-host gevonden seriële poorten; kies er een of typ een pad zoals `/dev/ttyUSB0`. Standaard **38400 8N1** met slave **0xA0**. Schakel eerst **Externe besturing / ModBus RTU** in de Conow-app in."
       },
       "tcp": {
         "title": "Modbus TCP (Ethernet-adapter)",
@@ -38,22 +47,60 @@
           "modbus_slave": "Slave-adres"
         },
         "description": "Verbind met je RS-485↔Ethernet-adapter (standaard TCP-poort **502**, slave **0xA0**). De adapter zet Modbus TCP om naar RTU — op het apparaat hoeft niets te veranderen."
+      },
+      "tcp_direct": {
+        "title": "Modbus TCP (rechtstreeks op alles-in-één)",
+        "data": {
+          "device_name": "Apparaatnaam",
+          "modbus_host": "Host / IP-adres",
+          "modbus_tcp_port": "TCP-poort",
+          "modbus_slave": "Slave-adres",
+          "tcp_verify_code": "Verificatiecode"
+        },
+        "description": "Verbind met de eigen Ethernet-poort van het alles-in-één-apparaat (standaard TCP-poort **502**, slave **0xA0**). Er is geen RS-485↔Ethernet-adapter nodig. Voer de **8-tekens hexadecimale verificatiecode** van het apparaat in; deze wordt naar de holding-registers **0x2701–0x2702** (9985–9986) geschreven en de verbinding wordt alleen bij bevestiging geaccepteerd."
       }
+    },
+    "abort": {
+      "already_configured": "Dit apparaat is al geconfigureerd. Gebruik de bestaande Conow Local-integratie.",
+      "already_in_progress": "Dit apparaat wordt al geconfigureerd. Rond eerst het open venster af of annuleer het."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Verbindingsinstellingen",
+        "description": "Wijzig het adres, de TCP-poort, het slave-adres of de verificatiecode. De nieuwe waarden worden op het apparaat getest voordat ze worden opgeslagen.",
+        "data": {
+          "modbus_host": "Host / IP-adres",
+          "modbus_tcp_port": "TCP-poort",
+          "modbus_slave": "Slave-adres",
+          "tcp_verify_code": "Verificatiecode"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kan geen Modbus-verbinding maken. Controleer de verbinding, Externe besturing / ModBus RTU en het slave-adres.",
+      "invalid_verify_code": "De verificatiecode moet uit precies 8 hexadecimale tekens bestaan.",
+      "tcp_connect_failed": "Kan geen TCP-verbinding openen. Controleer of het IP-adres klopt, de TCP-poort open is en Home Assistant in hetzelfde netwerk als het apparaat zit.",
+      "verification_failed": "Het apparaat heeft de verificatiecode geweigerd. Controleer de 8-tekens code op het apparaat en probeer opnieuw.",
+      "device_busy": "Het apparaat is al verbonden met een andere client (MAC-adres gewijzigd). Sluit de andere verbinding (Conow-app, RS-485-adapter of een andere Home Assistant-instantie) en probeer opnieuw.",
+      "verification_required": "Het apparaat vraagt om handmatig te verversen: de verificatiecode is niet meer geldig. Lees de actuele 8-tekens code van het apparaat en werk deze bij via Configureren.",
+      "external_control_disabled": "De RTU-schakelaar voor externe besturing van het apparaat staat uit. Schakel “Externe besturing / ModBus RTU” in het apparaatpaneel van de Conow-app in en probeer opnieuw."
+    },
+    "abort": {
+      "no_options": "Verbindingsinstellingen zijn alleen te bewerken voor Modbus TCP-vermeldingen."
     }
   },
   "entity": {
     "sensor": {
-      "fault_code": {
-        "name": "Foutcode"
+      "backup_load_cumulative_export_energy": {
+        "name": "Totale bypass-output"
       },
-      "battery_voltage": {
-        "name": "Accuspanning"
+      "backup_load_cumulative_import_energy": {
+        "name": "Totale bypass-input"
       },
-      "battery_soc": {
-        "name": "Accu-SoC"
-      },
-      "battery_design_capacity": {
-        "name": "Ontwerpcapaciteit"
+      "backup_load_power": {
+        "name": "Bypass-vermogen"
       },
       "battery_cell_temp_max": {
         "name": "Max. celtemperatuur"
@@ -61,108 +108,462 @@
       "battery_cell_temp_min": {
         "name": "Min. celtemperatuur"
       },
+      "battery_charge_energy_total": {
+        "name": "Totaal acculaadenergie"
+      },
       "battery_cumulative_charge_energy": {
         "name": "Totale laadenergie"
       },
       "battery_cumulative_discharge_energy": {
         "name": "Totale ontlaadenergie"
       },
+      "battery_current": {
+        "name": "Accustroom"
+      },
+      "battery_design_capacity": {
+        "name": "Ontwerpcapaciteit"
+      },
+      "battery_discharge_energy_total": {
+        "name": "Totaal accuontlaadenergie"
+      },
+      "battery_max_charge_power": {
+        "name": "Huidig max. acculaadvermogen"
+      },
+      "battery_max_discharge_power": {
+        "name": "Huidig max. accuontlaadvermogen"
+      },
+      "battery_power": {
+        "name": "Accuvermogen"
+      },
+      "battery_soc": {
+        "name": "Accu-SoC"
+      },
+      "battery_voltage": {
+        "name": "Accuspanning"
+      },
+      "battery_work_state": {
+        "name": "Accuwerkstatus",
+        "state": {
+          "idle": "Inactief",
+          "chg": "Laden",
+          "dchg": "Ontladen"
+        }
+      },
+      "bypass_current": {
+        "name": "Bypass-stroom"
+      },
+      "bypass_frequency": {
+        "name": "Bypass-frequentie"
+      },
+      "bypass_input_energy_total": {
+        "name": "Totaal bypass-ingangsenergie"
+      },
+      "bypass_output_energy_total": {
+        "name": "Totaal bypass-uitgangsenergie"
+      },
+      "bypass_power": {
+        "name": "Bypass-vermogen"
+      },
+      "bypass_voltage": {
+        "name": "Bypass-spanning"
+      },
+      "cell_temp_max": {
+        "name": "Max. celtemperatuur"
+      },
+      "cell_temp_min": {
+        "name": "Min. celtemperatuur"
+      },
+      "design_capacity": {
+        "name": "Ontwerpcapaciteit"
+      },
+      "device_clock": {
+        "name": "Apparaatklok"
+      },
+      "device_fault_code": {
+        "name": "Apparaatfoutcode"
+      },
+      "device_serial": {
+        "name": "Serienummer apparaat"
+      },
+      "device_status": {
+        "name": "Apparaatstatus"
+      },
+      "fault_code": {
+        "name": "Foutcode"
+      },
+      "firmware_version": {
+        "name": "Firmwareversie"
+      },
+      "global_ac_charge_power_limit": {
+        "name": "Globaal max. AC-laadvermogen"
+      },
+      "global_ac_discharge_power_limit": {
+        "name": "Globaal max. AC-ontlaadvermogen"
+      },
       "grid_active_power": {
         "name": "Net actief vermogen"
       },
-      "grid_frequency": {
-        "name": "Netfrequentie"
-      },
-      "grid_cumulative_import_energy": {
-        "name": "Totale netafname"
+      "grid_code_export_limit": {
+        "name": "Netcode-exportlimiet"
       },
       "grid_cumulative_export_energy": {
         "name": "Totale netinjectie"
       },
-      "backup_load_power": {
-        "name": "Bypass-vermogen"
+      "grid_cumulative_import_energy": {
+        "name": "Totale netafname"
       },
-      "backup_load_cumulative_export_energy": {
-        "name": "Totale bypass-output"
+      "grid_current": {
+        "name": "Netstroom"
       },
-      "backup_load_cumulative_import_energy": {
-        "name": "Totale bypass-input"
+      "grid_export_energy_total": {
+        "name": "Totaal netexport"
       },
-      "pv_total_power": {
-        "name": "Totaal PV-ingangsvermogen"
+      "grid_frequency": {
+        "name": "Netfrequentie"
       },
-      "pv_total_cumulative_energy": {
-        "name": "Totale PV-opbrengst"
+      "grid_import_energy_total": {
+        "name": "Totaal netimport"
       },
-      "pv1_power": {
-        "name": "PV1-ingangsvermogen"
+      "grid_voltage": {
+        "name": "Netspanning"
+      },
+      "hardware_max_ac_charge_power": {
+        "name": "Hardware max. AC-laadvermogen"
+      },
+      "hardware_max_ac_discharge_power": {
+        "name": "Hardware max. AC-ontlaadvermogen"
+      },
+      "meter_connection_state": {
+        "name": "Meterverbindingsstatus",
+        "state": {
+          "已配对已连接": "Gekoppeld & verbonden",
+          "已配对未连接": "Gekoppeld, niet verbonden",
+          "未配对未连接": "Niet gekoppeld, niet verbonden"
+        }
+      },
+      "meter_export_energy_total": {
+        "name": "Totaal meterexport"
+      },
+      "meter_import_energy_total": {
+        "name": "Totaal meterimport"
+      },
+      "meter_total_power": {
+        "name": "Metertotaalvermogen"
+      },
+      "phase_a_power": {
+        "name": "Fase A vermogen"
+      },
+      "phase_b_power": {
+        "name": "Fase B vermogen"
+      },
+      "phase_c_power": {
+        "name": "Fase C vermogen"
       },
       "pv1_cumulative_energy": {
         "name": "PV1 totale opbrengst"
       },
-      "pv2_power": {
-        "name": "PV2-ingangsvermogen"
+      "pv1_current": {
+        "name": "PV1-stroom"
+      },
+      "pv1_energy": {
+        "name": "PV1-energie"
+      },
+      "pv1_power": {
+        "name": "PV1-ingangsvermogen"
+      },
+      "pv1_voltage": {
+        "name": "PV1-spanning"
       },
       "pv2_cumulative_energy": {
         "name": "PV2 totale opbrengst"
       },
-      "pv3_power": {
-        "name": "PV3-ingangsvermogen"
+      "pv2_current": {
+        "name": "PV2-stroom"
+      },
+      "pv2_energy": {
+        "name": "PV2-energie"
+      },
+      "pv2_power": {
+        "name": "PV2-ingangsvermogen"
+      },
+      "pv2_voltage": {
+        "name": "PV2-spanning"
       },
       "pv3_cumulative_energy": {
         "name": "PV3 totale opbrengst"
       },
-      "pv4_power": {
-        "name": "PV4-ingangsvermogen"
+      "pv3_current": {
+        "name": "PV3-stroom"
+      },
+      "pv3_energy": {
+        "name": "PV3-energie"
+      },
+      "pv3_power": {
+        "name": "PV3-ingangsvermogen"
+      },
+      "pv3_voltage": {
+        "name": "PV3-spanning"
       },
       "pv4_cumulative_energy": {
         "name": "PV4 totale opbrengst"
+      },
+      "pv4_current": {
+        "name": "PV4-stroom"
+      },
+      "pv4_energy": {
+        "name": "PV4-energie"
+      },
+      "pv4_power": {
+        "name": "PV4-ingangsvermogen"
+      },
+      "pv4_voltage": {
+        "name": "PV4-spanning"
+      },
+      "pv_energy_total": {
+        "name": "Totaal PV-energie"
+      },
+      "pv_string_count": {
+        "name": "Aantal PV-strings"
+      },
+      "pv_total_cumulative_energy": {
+        "name": "Totale PV-opbrengst"
+      },
+      "pv_total_power": {
+        "name": "Totaal PV-ingangsvermogen"
+      },
+      "remaining_capacity": {
+        "name": "Resterende capaciteit"
+      },
+      "soh": {
+        "name": "SOH"
+      },
+      "system_backup_soc": {
+        "name": "Systeem-reserve-SoC"
+      },
+      "system_soc": {
+        "name": "Systeem-SoC"
+      },
+      "wifi_signal": {
+        "name": "Wi-Fi-signaalsterkte"
       }
     },
     "binary_sensor": {
-      "system_status_standby": {
-        "name": "Systeem–Standby",
+      "allow_battery_export": {
+        "name": "Accu-export toestaan",
         "state": {
-          "on": "Standby",
-          "off": "Niet in standby"
+          "on": "Accu-export ingeschakeld",
+          "off": "Accu-export uitgeschakeld"
         }
       },
-      "system_status_fault": {
-        "name": "Systeem–Fout"
+      "bypass_switch_state": {
+        "name": "Bypass-schakelstatus",
+        "state": {
+          "on": "Aan",
+          "off": "Uit"
+        }
       },
       "system_status_charging": {
         "name": "Systeem–Opladen",
         "state": {
-          "on": "Opladen",
-          "off": "Niet opladen"
+          "on": "Aan het laden",
+          "off": "Niet aan het laden"
         }
       },
       "system_status_discharging": {
         "name": "Systeem–Ontladen",
         "state": {
-          "on": "Ontladen",
-          "off": "Niet ontladen"
+          "on": "Aan het ontladen",
+          "off": "Niet aan het ontladen"
+        }
+      },
+      "system_status_fault": {
+        "name": "Systeem–Fout",
+        "state": {
+          "on": "Storing",
+          "off": "OK"
+        }
+      },
+      "system_status_standby": {
+        "name": "Systeem–Standby",
+        "state": {
+          "on": "Stand-by",
+          "off": "Niet in stand-by"
         }
       }
     },
     "number": {
-      "grid_charge_power_limit": {
+      "ac_charge_power_limit": {
         "name": "AC-laadvermogenlimiet"
       },
-      "battery_discharge_power_limit": {
-        "name": "AC-Ontlaadvermogenlimiet"
+      "ac_discharge_power_limit": {
+        "name": "AC-ontlaadvermogenlimiet"
+      },
+      "allow_reverse_power": {
+        "name": "Toegestaan terugleververmogen"
       },
       "backup_soc": {
         "name": "Back-up SoC"
       },
-      "battery_target_power": {
-        "name": "Doel laad-/ontlaadvermogen"
+      "base_load_setpoint": {
+        "name": "Basislast"
+      },
+      "base_load_slot1_power": {
+        "name": "Basislast tijdslot 1 vermogen"
+      },
+      "base_load_slot2_power": {
+        "name": "Basislast tijdslot 2 vermogen"
+      },
+      "base_load_slot3_power": {
+        "name": "Basislast tijdslot 3 vermogen"
+      },
+      "base_load_slot4_power": {
+        "name": "Basislast tijdslot 4 vermogen"
+      },
+      "base_load_slot5_power": {
+        "name": "Basislast tijdslot 5 vermogen"
+      },
+      "base_load_slot6_power": {
+        "name": "Basislast tijdslot 6 vermogen"
+      },
+      "base_load_slot7_power": {
+        "name": "Basislast tijdslot 7 vermogen"
+      },
+      "base_load_slot8_power": {
+        "name": "Basislast tijdslot 8 vermogen"
+      },
+      "base_load_slot_count": {
+        "name": "Aantal basislast-tijdsloten"
       },
       "battery_cutoff_soc": {
         "name": "Laad-/Ontlaad-uitschakel-SoC"
+      },
+      "battery_discharge_power_limit": {
+        "name": "AC-Ontlaadvermogenlimiet"
+      },
+      "battery_target_power": {
+        "name": "Doel laad-/ontlaadvermogen"
+      },
+      "charge_discharge_cutoff_soc": {
+        "name": "Laad-/ontlaadafslag-SoC"
+      },
+      "charge_discharge_duration": {
+        "name": "Laad-/ontlaadduur"
+      },
+      "generator_power": {
+        "name": "Generatorvermogen"
+      },
+      "generator_start_soc": {
+        "name": "Generator-start-SoC"
+      },
+      "generator_stop_soc": {
+        "name": "Generator-stop-SoC"
+      },
+      "grid_charge_power_limit": {
+        "name": "AC-laadvermogenlimiet"
+      },
+      "modbus_timeout": {
+        "name": "Modbus-time-out"
+      },
+      "safety_soc": {
+        "name": "Veiligheids-SoC"
+      },
+      "tou_slot1_power": {
+        "name": "Handmatige laad-/ontlaadstrategie 1 ontlaadvermogen"
+      },
+      "tou_slot1_target_soc": {
+        "name": "Handmatige laad-/ontlaadstrategie 1 doel-SoC"
+      },
+      "tou_slot2_power": {
+        "name": "Handmatige laad-/ontlaadstrategie 2 ontlaadvermogen"
+      },
+      "tou_slot2_target_soc": {
+        "name": "Handmatige laad-/ontlaadstrategie 2 doel-SoC"
+      },
+      "tou_slot3_power": {
+        "name": "Handmatige laad-/ontlaadstrategie 3 ontlaadvermogen"
+      },
+      "tou_slot3_target_soc": {
+        "name": "Handmatige laad-/ontlaadstrategie 3 doel-SoC"
+      },
+      "tou_slot4_power": {
+        "name": "Handmatige laad-/ontlaadstrategie 4 ontlaadvermogen"
+      },
+      "tou_slot4_target_soc": {
+        "name": "Handmatige laad-/ontlaadstrategie 4 doel-SoC"
+      },
+      "tou_slot5_power": {
+        "name": "Handmatige laad-/ontlaadstrategie 5 ontlaadvermogen"
+      },
+      "tou_slot5_target_soc": {
+        "name": "Handmatige laad-/ontlaadstrategie 5 doel-SoC"
+      },
+      "tou_slot6_power": {
+        "name": "Handmatige laad-/ontlaadstrategie 6 ontlaadvermogen"
+      },
+      "tou_slot6_target_soc": {
+        "name": "Handmatige laad-/ontlaadstrategie 6 doel-SoC"
+      },
+      "tou_slot7_power": {
+        "name": "Handmatige laad-/ontlaadstrategie 7 ontlaadvermogen"
+      },
+      "tou_slot7_target_soc": {
+        "name": "Handmatige laad-/ontlaadstrategie 7 doel-SoC"
+      },
+      "tou_slot8_power": {
+        "name": "Handmatige laad-/ontlaadstrategie 8 ontlaadvermogen"
+      },
+      "tou_slot8_target_soc": {
+        "name": "Handmatige laad-/ontlaadstrategie 8 doel-SoC"
+      },
+      "tou_slot_count": {
+        "name": "Aantal TOU-tijdsloten"
+      }
+    },
+    "select": {
+      "charge_discharge_direction": {
+        "name": "Laad-/ontlaadrichting"
+      },
+      "tou_slot1_mode": {
+        "name": "Handmatige laad-/ontlaadstrategie 1 werkmodus"
+      },
+      "tou_slot2_mode": {
+        "name": "Handmatige laad-/ontlaadstrategie 2 werkmodus"
+      },
+      "tou_slot3_mode": {
+        "name": "Handmatige laad-/ontlaadstrategie 3 werkmodus"
+      },
+      "tou_slot4_mode": {
+        "name": "Handmatige laad-/ontlaadstrategie 4 werkmodus"
+      },
+      "tou_slot5_mode": {
+        "name": "Handmatige laad-/ontlaadstrategie 5 werkmodus"
+      },
+      "tou_slot6_mode": {
+        "name": "Handmatige laad-/ontlaadstrategie 6 werkmodus"
+      },
+      "tou_slot7_mode": {
+        "name": "Handmatige laad-/ontlaadstrategie 7 werkmodus"
+      },
+      "tou_slot8_mode": {
+        "name": "Handmatige laad-/ontlaadstrategie 8 werkmodus"
+      },
+      "work_mode": {
+        "name": "Werkmodus"
       }
     },
     "switch": {
+      "bypass_enable": {
+        "name": "Bypass-altijd-aan-schakelaar"
+      },
+      "do1_state": {
+        "name": "DO1-besturing"
+      },
+      "do2_state": {
+        "name": "DO2-besturing"
+      },
+      "generator_enable": {
+        "name": "Generator-schakelaar"
+      },
       "off_grid_output_enable": {
         "name": "Off-grid uitgangsschakelaar"
       },
@@ -170,14 +571,108 @@
         "name": "PV-curtailmentschakelaar"
       }
     },
-    "select": {
-      "charge_discharge_direction": {
-        "name": "Laad-/Ontlaadrichting",
-        "state": {
-          "force_charge": "Geforceerd laden",
-          "idle": "Inactief",
-          "force_discharge": "Geforceerd ontladen"
-        }
+    "time": {
+      "base_load_slot1_end": {
+        "name": "Basislast tijdslot 1 eindtijd"
+      },
+      "base_load_slot1_start": {
+        "name": "Basislast tijdslot 1 starttijd"
+      },
+      "base_load_slot2_end": {
+        "name": "Basislast tijdslot 2 eindtijd"
+      },
+      "base_load_slot2_start": {
+        "name": "Basislast tijdslot 2 starttijd"
+      },
+      "base_load_slot3_end": {
+        "name": "Basislast tijdslot 3 eindtijd"
+      },
+      "base_load_slot3_start": {
+        "name": "Basislast tijdslot 3 starttijd"
+      },
+      "base_load_slot4_end": {
+        "name": "Basislast tijdslot 4 eindtijd"
+      },
+      "base_load_slot4_start": {
+        "name": "Basislast tijdslot 4 starttijd"
+      },
+      "base_load_slot5_end": {
+        "name": "Basislast tijdslot 5 eindtijd"
+      },
+      "base_load_slot5_start": {
+        "name": "Basislast tijdslot 5 starttijd"
+      },
+      "base_load_slot6_end": {
+        "name": "Basislast tijdslot 6 eindtijd"
+      },
+      "base_load_slot6_start": {
+        "name": "Basislast tijdslot 6 starttijd"
+      },
+      "base_load_slot7_end": {
+        "name": "Basislast tijdslot 7 eindtijd"
+      },
+      "base_load_slot7_start": {
+        "name": "Basislast tijdslot 7 starttijd"
+      },
+      "base_load_slot8_end": {
+        "name": "Basislast tijdslot 8 eindtijd"
+      },
+      "base_load_slot8_start": {
+        "name": "Basislast tijdslot 8 starttijd"
+      },
+      "generator_end_time": {
+        "name": "Generator-eindtijd"
+      },
+      "generator_start_time": {
+        "name": "Generator-starttijd"
+      },
+      "tou_slot1_end": {
+        "name": "Handmatige laad-/ontlaadstrategie 1 eindtijd"
+      },
+      "tou_slot1_start": {
+        "name": "Handmatige laad-/ontlaadstrategie 1 starttijd"
+      },
+      "tou_slot2_end": {
+        "name": "Handmatige laad-/ontlaadstrategie 2 eindtijd"
+      },
+      "tou_slot2_start": {
+        "name": "Handmatige laad-/ontlaadstrategie 2 starttijd"
+      },
+      "tou_slot3_end": {
+        "name": "Handmatige laad-/ontlaadstrategie 3 eindtijd"
+      },
+      "tou_slot3_start": {
+        "name": "Handmatige laad-/ontlaadstrategie 3 starttijd"
+      },
+      "tou_slot4_end": {
+        "name": "Handmatige laad-/ontlaadstrategie 4 eindtijd"
+      },
+      "tou_slot4_start": {
+        "name": "Handmatige laad-/ontlaadstrategie 4 starttijd"
+      },
+      "tou_slot5_end": {
+        "name": "Handmatige laad-/ontlaadstrategie 5 eindtijd"
+      },
+      "tou_slot5_start": {
+        "name": "Handmatige laad-/ontlaadstrategie 5 starttijd"
+      },
+      "tou_slot6_end": {
+        "name": "Handmatige laad-/ontlaadstrategie 6 eindtijd"
+      },
+      "tou_slot6_start": {
+        "name": "Handmatige laad-/ontlaadstrategie 6 starttijd"
+      },
+      "tou_slot7_end": {
+        "name": "Handmatige laad-/ontlaadstrategie 7 eindtijd"
+      },
+      "tou_slot7_start": {
+        "name": "Handmatige laad-/ontlaadstrategie 7 starttijd"
+      },
+      "tou_slot8_end": {
+        "name": "Handmatige laad-/ontlaadstrategie 8 eindtijd"
+      },
+      "tou_slot8_start": {
+        "name": "Handmatige laad-/ontlaadstrategie 8 starttijd"
       }
     }
   }

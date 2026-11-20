@@ -8,27 +8,10 @@ import time
 from typing import Any
 
 from pymodbus.client import ModbusSerialClient, ModbusTcpClient
-from pymodbus.exceptions import ModbusException
+from pymodbus.exceptions import ConnectionException, ModbusException
 
-from .const import DEFAULT_TCP_PORT, MODBUS_MODE_RTU, MODBUS_MODE_TCP
-from .register_map import (
-    CONTROL_COUNT,
-    CONTROL_REGISTERS,
-    CONTROL_START,
-    DEFAULT_BAUDRATE,
-    DEFAULT_SLAVE,
-    DIRECTION_FORCE_CHARGE,
-    DIRECTION_FORCE_DISCHARGE,
-    DIRECTION_IDLE,
-    MONITORING_COUNT,
-    MONITORING_REGISTERS,
-    MONITORING_START,
-    REGISTERS_BY_ADDRESS,
-    REGISTERS_BY_NAME,
-    SYSTEM_STATUS_BITS,
-    RegisterDef,
-    get_force_mode_sequence,
-)
+from .const import DEFAULT_BAUDRATE, DEFAULT_SLAVE, DEFAULT_TCP_PORT, MODBUS_MODE_RTU, MODBUS_MODE_TCP
+from .maps.registry import CONNECTION_PROBE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -78,10 +61,13 @@ def _read_holding_response_frame(slave: int, registers: list[int]) -> bytes:
     return _build_rtu_frame(slave, 0x03, payload)
 
 
-def _write_register_request_frame(slave: int, address: int, value: int) -> bytes:
-    """Build FC 0x06 write single register request frame."""
-    payload = struct.pack(">HH", address, value & 0xFFFF)
-    return _build_rtu_frame(slave, 0x06, payload)
+def _write_registers_request_frame(
+    slave: int, address: int, values: list[int]
+) -> bytes:
+    """Build FC 0x10 write multiple registers request frame."""
+    payload = struct.pack(">HHB", address, len(values), len(values) * 2)
+    payload += b"".join(struct.pack(">H", value & 0xFFFF) for value in values)
+    return _build_rtu_frame(slave, 0x10, payload)
 
 
 def _build_tcp_frame(transaction_id: int, slave: int, function_code: int, payload: bytes) -> bytes:
@@ -95,13 +81,145 @@ def _read_holding_request_tcp_frame(slave: int, address: int, count: int) -> byt
     return _build_tcp_frame(0, slave, 0x03, struct.pack(">HH", address, count))
 
 
-def _write_register_request_tcp_frame(slave: int, address: int, value: int) -> bytes:
-    """Build FC 0x06 write single register TCP request (indicative TX log)."""
-    return _build_tcp_frame(0, slave, 0x06, struct.pack(">HH", address, value & 0xFFFF))
+def _write_registers_request_tcp_frame(
+    slave: int, address: int, values: list[int]
+) -> bytes:
+    """Build FC 0x10 write multiple registers TCP request (indicative TX log)."""
+    payload = struct.pack(">HHB", address, len(values), len(values) * 2)
+    payload += b"".join(struct.pack(">H", value & 0xFFFF) for value in values)
+    return _build_tcp_frame(0, slave, 0x10, payload)
 
 
 class ConowModbusError(Exception):
     """Raised when Modbus communication fails."""
+
+
+class ConowConnectError(ConowModbusError):
+    """Raised when the transport link cannot be opened at all.
+
+    Kept apart from a failed request so the frontend can tell "the device is
+    not reachable" (wrong IP, closed port, other subnet) from "the device
+    answered and rejected what we sent".
+    """
+
+
+class ConowVerificationError(ConowModbusError):
+    """Raised when the direct TCP verification code is rejected."""
+
+
+# Modbus exception codes (function code | 0x80 in the reply).
+EXCEPTION_NAMES = {
+    1: "illegal function",
+    2: "illegal data address",
+    3: "illegal data value",
+    4: "slave device failure",
+    5: "acknowledge",
+    6: "slave device busy",
+    8: "memory parity error",
+    10: "gateway path unavailable",
+    11: "gateway target failed to respond",
+}
+
+# CONOW reuses three standard Modbus exception codes for its own meaning (see
+# the machine's fault-code table): 4 = "MAC address changed" — in practice
+# another client already holds the device — 5 = "manual refresh", i.e. the
+# stored verification code is stale, and 6 = "external control disabled", i.e.
+# the Modbus RTU switch is off in the app.  None of them depends on the
+# request that was sent, so they must stop the rest of a poll instead of being
+# treated as one unreadable block.  Code 6 only exists on the RS-485 (RTU)
+# link, so a TCP client keeps the plain "slave device busy" meaning.
+CONOW_EXCEPTION_DEVICE_BUSY = 4
+CONOW_EXCEPTION_VERIFICATION_REQUIRED = 5
+CONOW_EXCEPTION_EXTERNAL_CONTROL = 6
+CONOW_EXCEPTION_HINTS = {
+    CONOW_EXCEPTION_DEVICE_BUSY: (
+        "the device is already connected by another client (MAC address "
+        "changed); close the other connection (Conow app, RS-485 adapter or "
+        "another Home Assistant instance) and retry"
+    ),
+    CONOW_EXCEPTION_VERIFICATION_REQUIRED: (
+        "the device asks for a manual refresh: the verification code is no "
+        "longer valid; update it under Settings > Devices & services > "
+        "Conow Local > Configure"
+    ),
+    CONOW_EXCEPTION_EXTERNAL_CONTROL: (
+        "external control (Modbus RTU) is switched off on the device; turn "
+        "on \"Enable External Control / ModBus RTU\" in the device panel of "
+        "the Conow app, then reload the integration"
+    ),
+}
+
+
+class ConowExceptionResponseError(ConowModbusError):
+    """The device answered with a Modbus exception response.
+
+    The link is healthy — the device heard the request and refused it.  Such a
+    reply must not be retried and must not drop the connection: resending the
+    same request cannot change the answer, and on a direct-TCP machine a
+    reconnect also has to re-send the verification code.
+    """
+
+    def __init__(
+        self, function_code: int, exception_code: int, mode: str | None = None
+    ) -> None:
+        """Store the exception reply for callers and logs."""
+        self.function_code = function_code
+        self.exception_code = exception_code
+        # Plain-language cause for the user; ``None`` for a refusal that only
+        # concerns this one request (bad address, bad value, ...).
+        hint = CONOW_EXCEPTION_HINTS.get(exception_code)
+        if (
+            exception_code == CONOW_EXCEPTION_EXTERNAL_CONTROL
+            and mode is not None
+            and mode != MODBUS_MODE_RTU
+        ):
+            # The RS-485 external-control switch does not govern a TCP link:
+            # there the code keeps its standard "slave device busy" meaning.
+            hint = None
+        self.hint = hint
+        message = (
+            f"Modbus exception 0x{function_code:02X}/0x{exception_code:02X} "
+            f"({EXCEPTION_NAMES.get(exception_code, 'unknown exception')})"
+        )
+        if self.hint:
+            message = f"{message}: {self.hint}"
+        super().__init__(message)
+
+    @property
+    def device_level(self) -> bool:
+        """Whether the code describes the link/client, not the request."""
+        return self.hint is not None
+
+
+def _raise_for_response(
+    response: Any, function_code: int, mode: str | None = None
+) -> None:
+    """Raise the right error for a missing or exception response."""
+    if response is None:
+        raise ConowModbusError("No response from device")
+    if response.isError():
+        raise ConowExceptionResponseError(
+            int(getattr(response, "function_code", function_code | 0x80)),
+            int(getattr(response, "exception_code", 0)),
+            mode,
+        )
+
+
+VERIFY_CODE_START = 0x2701  # uint32 challenge, two holding registers (9985-9986)
+VERIFY_CODE_LENGTH = 8
+
+
+def encode_verify_code(code: str | int) -> list[int]:
+    """Encode an 8-character hexadecimal code as uint32 words (high word first)."""
+    text = str(code).strip()
+    if len(text) != VERIFY_CODE_LENGTH or any(
+        char not in "0123456789abcdefABCDEF" for char in text
+    ):
+        raise ConowModbusError(
+            "Verification code must be exactly 8 hexadecimal characters"
+        )
+    value = int(text, 16)
+    return [(value >> 16) & 0xFFFF, value & 0xFFFF]
 
 
 class ConowModbusClient:
@@ -119,7 +237,10 @@ class ConowModbusClient:
     ) -> None:
         """Initialize client: TCP when host is given, RTU serial otherwise.
 
-        Serial defaults to 38400 8N1; TCP targets a RS-485↔Ethernet adapter.
+        Serial defaults to 38400 8N1; TCP targets an RS-485↔Ethernet adapter
+        or the device's own Ethernet port.  The direct-TCP challenge code is
+        not handled here: the config flow writes it, and a refusal never
+        triggers a write of its own.
         """
         self._slave = slave
         self._mode = MODBUS_MODE_TCP if host is not None else MODBUS_MODE_RTU
@@ -156,14 +277,19 @@ class ConowModbusClient:
         """Return the connection mode ('rtu' or 'tcp')."""
         return self._mode
 
+    @property
+    def connected(self) -> bool:
+        """Whether the underlying socket/serial port is still open."""
+        return bool(getattr(self._client, "connected", False))
+
     def connect(self) -> None:
         """Open the connection."""
         if not self._client.connect():
             if self._mode == MODBUS_MODE_TCP:
-                raise ConowModbusError(
+                raise ConowConnectError(
                     f"Failed to connect to {self._host}:{self._tcp_port}"
                 )
-            raise ConowModbusError(f"Failed to open serial port {self._port}")
+            raise ConowConnectError(f"Failed to open serial port {self._port}")
         self._flush_input_buffer()
 
     def _flush_input_buffer(self) -> None:
@@ -178,10 +304,10 @@ class ConowModbusClient:
         time.sleep(RETRY_INTERVAL_S)
         if not self._client.connect():
             if self._mode == MODBUS_MODE_TCP:
-                raise ConowModbusError(
+                raise ConowConnectError(
                     f"Failed to reconnect to {self._host}:{self._tcp_port}"
                 )
-            raise ConowModbusError(f"Failed to reopen serial port {self._port}")
+            raise ConowConnectError(f"Failed to reopen serial port {self._port}")
         self._flush_input_buffer()
 
     def close(self) -> None:
@@ -197,10 +323,17 @@ class ConowModbusClient:
         """Disconnect on context exit."""
         self.close()
 
-    def read_holding_registers(self, address: int, count: int) -> list[int]:
-        """Read holding registers (FC 0x03) with retry."""
+    def read_holding_registers(
+        self, address: int, count: int, *, retries: int = MAX_RETRIES
+    ) -> list[int]:
+        """Read holding registers (FC 0x03) with retry.
+
+        Set ``retries=1`` for optional probes where a slow failure should not
+        delay setup and where the caller has a safe fallback.
+        """
+        attempts = max(1, retries)
         last_error: Exception | None = None
-        for attempt in range(1, MAX_RETRIES + 1):
+        for attempt in range(1, attempts + 1):
             try:
                 self._flush_input_buffer()
                 if self._mode == MODBUS_MODE_TCP:
@@ -216,10 +349,7 @@ class ConowModbusClient:
                     count=count,
                     device_id=self._slave,
                 )
-                if response is None:
-                    raise ConowModbusError("No response from device")
-                if response.isError():
-                    raise ConowModbusError(str(response))
+                _raise_for_response(response, 0x03, self._mode)
                 registers = list(response.registers)
                 rx_frame = _read_holding_response_frame(self._slave, registers)
                 _LOGGER.debug(
@@ -230,252 +360,132 @@ class ConowModbusClient:
                     registers,
                 )
                 return registers
-            except (ModbusException, ConowModbusError) as exc:
+            except ConowExceptionResponseError as exc:
+                _LOGGER.warning(
+                    "Modbus read refused addr=%s count=%s: %s", address, count, exc
+                )
+                # A refusal never writes the challenge code on its own: the
+                # code is only sent from the config flow.  The request is
+                # reported as failed and the next poll simply tries again,
+                # because the machine may answer normally at any time.
+                raise
+            except ConnectionException as exc:
+                # The socket could not be opened (or died before a reply):
+                # no frame reached the device, so retrying the same link only
+                # repeats the 2 s timeout.  Report the dead link immediately.
+                _LOGGER.debug("Read connect failed addr=%s: %s", address, exc)
+                raise ConowConnectError(
+                    f"Failed to connect to {self._endpoint}: {exc}"
+                ) from exc
+            except (ModbusException, ConowModbusError, OSError) as exc:
                 last_error = exc
                 _LOGGER.debug(
                     "Read failed (attempt %s/%s) addr=%s: %s",
                     attempt,
-                    MAX_RETRIES,
+                    attempts,
                     address,
                     exc,
                 )
-                if attempt < MAX_RETRIES:
+                if attempt < attempts:
                     self._reconnect_after_error()
         if self._mode == MODBUS_MODE_TCP:
             msg = (
-                f"Read failed after {MAX_RETRIES} attempts (slave={self._slave}, "
+                f"Read failed after {attempts} attempts (slave={self._slave}, "
                 f"tcp={self._host}:{self._tcp_port}): device sent no Modbus "
                 f"reply — check Enable External Control / ModBus RTU, the "
-                f"RS-485↔Ethernet adapter (server IP / port {DEFAULT_TCP_PORT}), "
-                f"and its serial settings (slave 160 / 38400 8N1)"
+                f"TCP endpoint (server IP / port {DEFAULT_TCP_PORT}) and its "
+                f"serial settings (slave 160 / 38400 8N1)"
             )
         else:
             msg = (
-                f"Read failed after {MAX_RETRIES} attempts (slave={self._slave}, "
+                f"Read failed after {attempts} attempts (slave={self._slave}, "
                 f"port={self._port}): device sent no Modbus reply — check "
                 f"Enable External Control / ModBus RTU, RS-485 wiring, "
                 f"and slave/baud (160 / 38400)"
             )
         raise ConowModbusError(msg) from last_error
 
-    def write_register(self, address: int, value: int) -> None:
-        """Write single holding register (FC 0x06) with retry."""
+    def write_registers(
+        self, address: int, values: list[int], *, retries: int = MAX_RETRIES
+    ) -> None:
+        """Write consecutive holding registers (FC 0x10) with retry.
+
+        Devices that reject single-register writes for a coupled group require
+        this function code; 32-bit values are written as one atomic frame.
+        Set ``retries=1`` for one-shot writes such as challenge verification,
+        where repeating a rejected value could lock the device.
+        """
+        if not values:
+            raise ConowModbusError("write_registers requires at least one value")
+        attempts = max(1, retries)
         last_error: Exception | None = None
-        for attempt in range(1, MAX_RETRIES + 1):
+        for attempt in range(1, attempts + 1):
             try:
                 self._flush_input_buffer()
                 if self._mode == MODBUS_MODE_TCP:
-                    tx_frame = _write_register_request_tcp_frame(self._slave, address, value)
+                    tx_frame = _write_registers_request_tcp_frame(
+                        self._slave, address, values
+                    )
                 else:
-                    tx_frame = _write_register_request_frame(self._slave, address, value)
-                _LOGGER.info(
-                    "Modbus write TX (FC 0x06): %s",
-                    _format_rtu_hex(tx_frame),
-                )
-                response = self._client.write_register(
+                    tx_frame = _write_registers_request_frame(
+                        self._slave, address, values
+                    )
+                _LOGGER.info("Modbus write TX (FC 0x10): %s", _format_rtu_hex(tx_frame))
+                response = self._client.write_registers(
                     address,
-                    value,
+                    values,
                     device_id=self._slave,
                 )
-                if response is None:
-                    raise ConowModbusError("No response from device")
-                if response.isError():
-                    raise ConowModbusError(str(response))
-                # FC 0x06 normal response echoes the request PDU (8 bytes).
+                _raise_for_response(response, 0x10, self._mode)
                 _LOGGER.info(
-                    "Modbus write OK: slave=%s addr=%s value=%s; expected RX echo: %s",
+                    "Modbus write OK: slave=%s addr=%s count=%s values=%s",
                     self._slave,
                     address,
-                    value,
-                    _format_rtu_hex(tx_frame),
+                    len(values),
+                    values,
                 )
                 return
-            except (ModbusException, ConowModbusError) as exc:
+            except ConowExceptionResponseError as exc:
+                _LOGGER.warning(
+                    "Modbus write refused addr=%s count=%s values=%s: %s",
+                    address,
+                    len(values),
+                    values,
+                    exc,
+                )
+                # The refusal is reported to the caller; it never triggers a
+                # verification-code write, and the caller decides whether to
+                # retry (the polling loop does, every interval).
+                raise
+            except ConnectionException as exc:
+                # No link: the request never left this host.
+                _LOGGER.debug("Write connect failed addr=%s: %s", address, exc)
+                raise ConowConnectError(
+                    f"Failed to connect to {self._endpoint}: {exc}"
+                ) from exc
+            except (ModbusException, ConowModbusError, OSError) as exc:
                 last_error = exc
                 _LOGGER.debug(
                     "Write failed (attempt %s/%s) addr=%s: %s",
                     attempt,
-                    MAX_RETRIES,
+                    attempts,
                     address,
                     exc,
                 )
-                if attempt < MAX_RETRIES:
+                if attempt < attempts:
                     self._reconnect_after_error()
-        if self._mode == MODBUS_MODE_TCP:
-            err_frame = _write_register_request_tcp_frame(self._slave, address, value)
-        else:
-            err_frame = _write_register_request_frame(self._slave, address, value)
         _LOGGER.error(
-            "Modbus write failed: slave=%s endpoint=%s addr=%s value=%s TX=%s err=%s",
+            "Modbus FC 0x10 write failed: slave=%s endpoint=%s addr=%s values=%s err=%s",
             self._slave,
             self._endpoint,
             address,
-            value,
-            _format_rtu_hex(err_frame),
+            values,
             last_error,
         )
         raise ConowModbusError(
-            f"Write failed after {MAX_RETRIES} attempts: {last_error}"
+            f"Write failed after {attempts} attempt{'s' if attempts != 1 else ''}: "
+            f"{last_error}"
         ) from last_error
-
-    @staticmethod
-    def decode_raw(dtype: str, registers: list[int], index: int) -> int:
-        """Decode one field from a contiguous register block."""
-        if dtype == "uint32":
-            if index + 1 >= len(registers):
-                raise ConowModbusError("uint32 decode out of range")
-            high = registers[index]
-            low = registers[index + 1]
-            return (high << 16) | low
-        raw = registers[index]
-        if dtype == "int16":
-            return struct.unpack(">h", struct.pack(">H", raw & 0xFFFF))[0]
-        return raw
-
-    @staticmethod
-    def to_physical(defn: RegisterDef, raw: int) -> float:
-        """Convert raw register value to physical quantity."""
-        return (raw - defn.offset) * defn.scale
-
-    @staticmethod
-    def to_raw(defn: RegisterDef, physical: float) -> int:
-        """Convert physical quantity to raw register value."""
-        if defn.scale == 0:
-            raise ConowModbusError(f"Invalid scale for {defn.name}")
-        raw = round(physical / defn.scale + defn.offset)
-        if defn.dtype == "int16" and not -32768 <= raw <= 32767:
-            raise ConowModbusError(f"Value out of int16 range for {defn.name}: {raw}")
-        if defn.dtype != "int16" and raw < 0:
-            raise ConowModbusError(f"Value out of range for {defn.name}: {raw}")
-        return int(raw) & 0xFFFF
-
-    def decode_block(
-        self, definitions: list[RegisterDef], block_start: int, registers: list[int]
-    ) -> dict[str, Any]:
-        """Decode a register block into named values."""
-        result: dict[str, Any] = {}
-        index = 0
-        while index < len(registers):
-            address = block_start + index
-            defn = REGISTERS_BY_ADDRESS.get(address)
-            if defn is None:
-                index += 1
-                continue
-            raw = self.decode_raw(defn.dtype, registers, index)
-            physical = self.to_physical(defn, raw)
-            entry: dict[str, Any] = {
-                "address": defn.address,
-                "raw": raw,
-                "value": physical,
-                "unit": defn.unit,
-            }
-            if defn.decode == "bitmask":
-                entry["bits"] = decode_system_status(raw)
-            result[defn.name] = entry
-            index += defn.register_count
-        return result
-
-    def read_monitoring(self) -> dict[str, Any]:
-        """Read real-time status block (registers 10000–10036)."""
-        registers = self.read_holding_registers(MONITORING_START, MONITORING_COUNT)
-        return self.decode_block(MONITORING_REGISTERS, MONITORING_START, registers)
-
-    def read_control(self) -> dict[str, Any]:
-        """Read parameter / control block (registers 10100–10107)."""
-        registers = self.read_holding_registers(CONTROL_START, CONTROL_COUNT)
-        return self.decode_block(CONTROL_REGISTERS, CONTROL_START, registers)
-
-    def read_all(self) -> dict[str, Any]:
-        """Read monitoring and control blocks."""
-        monitoring = self.read_monitoring()
-        time.sleep(INTER_FRAME_DELAY_S)
-        control = self.read_control()
-        return {
-            "monitoring": monitoring,
-            "control": control,
-        }
-
-    def write_named_register_raw(self, name: str, raw_value: int) -> None:
-        """Write a single control register using raw Modbus integer."""
-        defn = REGISTERS_BY_NAME.get(name)
-        if defn is None:
-            raise ConowModbusError(f"Unknown register name: {name}")
-        if not defn.writable:
-            raise ConowModbusError(f"Register {name} is read-only")
-        _LOGGER.info(
-            "Control write %s: addr=%s raw=%s",
-            name,
-            defn.address,
-            raw_value,
-        )
-        self.write_register(defn.address, raw_value)
-
-    def write_named_register(self, name: str, physical_value: float) -> None:
-        """Write a single control register by physical value."""
-        defn = REGISTERS_BY_NAME.get(name)
-        if defn is None:
-            raise ConowModbusError(f"Unknown register name: {name}")
-        if not defn.writable:
-            raise ConowModbusError(f"Register {name} is read-only")
-        raw = self.to_raw(defn, physical_value)
-        _LOGGER.info(
-            "Control write %s: addr=%s physical=%s raw=%s",
-            name,
-            defn.address,
-            physical_value,
-            raw,
-        )
-        self.write_register(defn.address, raw)
-
-    def write_force_mode(self, direction: int, power_w: int, cutoff_soc: int) -> None:
-        """Write forced charge/discharge or idle using registers.json sequence."""
-        valid_directions = {
-            DIRECTION_IDLE,
-            DIRECTION_FORCE_CHARGE,
-            DIRECTION_FORCE_DISCHARGE,
-        }
-        if direction not in valid_directions:
-            raise ConowModbusError(f"Invalid direction: {direction}")
-        if not 0 <= cutoff_soc <= 100:
-            raise ConowModbusError("cutoff_soc must be 0–100")
-        if power_w < 0:
-            raise ConowModbusError("power_w must be >= 0")
-
-        sequence = get_force_mode_sequence()
-        if direction == DIRECTION_IDLE:
-            idle_reg = REGISTERS_BY_NAME[sequence.idle_register]
-            _LOGGER.info(
-                "Force mode idle: write addr=%s value=%s",
-                idle_reg.address,
-                sequence.idle_value,
-            )
-            self.write_register(idle_reg.address, sequence.idle_value)
-            return
-
-        values_by_name = {
-            sequence.register_names[0]: power_w,
-            sequence.register_names[1]: direction,
-            sequence.register_names[2]: cutoff_soc,
-        }
-        _LOGGER.info(
-            "Force mode sequence: power=%s direction=%s cutoff_soc=%s (addrs %s)",
-            power_w,
-            direction,
-            cutoff_soc,
-            "→".join(str(REGISTERS_BY_NAME[name].address) for name in sequence.register_names),
-        )
-        for name in sequence.register_names:
-            register = REGISTERS_BY_NAME[name]
-            self.write_register(register.address, values_by_name[name])
-
-
-def decode_system_status(raw: int) -> dict[str, bool]:
-    """Parse system status bitmask (register 10000)."""
-    return {
-        label: bool(raw & (1 << bit))
-        for bit, label in SYSTEM_STATUS_BITS.items()
-    }
-
 
 def probe_connection(
     port: str | None = None,
@@ -484,10 +494,80 @@ def probe_connection(
     tcp_port: int = DEFAULT_TCP_PORT,
     slave: int = DEFAULT_SLAVE,
     baudrate: int = DEFAULT_BAUDRATE,
-) -> None:
-    """Verify Modbus connectivity by reading battery SOC."""
-    soc_address = REGISTERS_BY_NAME["battery_soc"].address
-    with ConowModbusClient(
+    keep_open: bool = False,
+) -> ConowModbusClient | None:
+    """Verify Modbus connectivity by reading a register both maps implement.
+
+    With ``keep_open`` the verified client is returned instead of being
+    closed, so the entry being created can poll it instead of opening a
+    second connection.
+    """
+    address, count = CONNECTION_PROBE
+    client = ConowModbusClient(
         port, host=host, tcp_port=tcp_port, slave=slave, baudrate=baudrate
-    ) as client:
-        client.read_holding_registers(soc_address, 1)
+    )
+    try:
+        client.connect()
+        client.read_holding_registers(address, count)
+    except Exception:
+        client.close()
+        raise
+    if keep_open:
+        return client
+    client.close()
+    return None
+
+
+def probe_direct_connection(
+    host: str,
+    *,
+    tcp_port: int = DEFAULT_TCP_PORT,
+    slave: int = DEFAULT_SLAVE,
+    verify_code: str,
+    keep_open: bool = False,
+) -> ConowModbusClient | None:
+    """Verify a direct TCP link by writing the challenge code.
+
+    The all-in-one machine requires the dynamic 8-character hexadecimal code
+    shown by the device to be written to holding registers 0x2701–0x2702
+    (9985–9986, uint32, high word first).  The code refreshes every 120 s over
+    TCP until verification succeeds.  The write itself is the first Modbus
+    request: a normal FC 0x10 response means the device accepted the code,
+    while an error response or missing reply is treated as verification
+    failure.
+
+    With ``keep_open`` the verified client is returned instead of being
+    closed: the entry being created adopts it, so the machine sees one
+    connection and one code write, not two.
+    """
+    words = encode_verify_code(verify_code)
+    client = ConowModbusClient(host=host, tcp_port=tcp_port, slave=slave)
+    try:
+        client.connect()
+    except Exception:
+        client.close()
+        raise
+    try:
+        client.write_registers(VERIFY_CODE_START, words, retries=1)
+    except ConowConnectError:
+        # No link: report the transport failure, not a rejected code.
+        client.close()
+        raise
+    except ConowExceptionResponseError as err:
+        client.close()
+        if err.device_level:
+            # 4/5 concern the link itself (another client, stale code); the
+            # config flow has a dedicated message for each.
+            raise
+        raise ConowVerificationError(
+            f"Verification code rejected: {err}"
+        ) from err
+    except ConowModbusError as err:
+        client.close()
+        raise ConowVerificationError(
+            f"Verification code rejected: {err}"
+        ) from err
+    if keep_open:
+        return client
+    client.close()
+    return None

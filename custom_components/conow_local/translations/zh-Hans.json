@@ -5,16 +5,25 @@
     },
     "force_mode_cutoff_required": {
       "message": "请先将「充放电截止 SOC」设置为 1–100，再选择强制充电或强制放电。"
+    },
+    "panel_write_required": {
+      "message": "为保证原子性，设备页上的单个控件不会直接下发；请在 Conow Local 面板中整组下发。 {url}"
     }
   },
   "config": {
     "error": {
-      "cannot_connect": "无法通过 Modbus 连接，请检查连接方式、是否开启「启用外部控制 / ModBus RTU」及从站地址。"
+      "cannot_connect": "无法通过 Modbus 连接，请检查连接方式、是否开启「启用外部控制 / ModBus RTU」及从站地址。",
+      "invalid_verify_code": "验证码必须是 8 位十六进制字符。",
+      "tcp_connect_failed": "无法建立 TCP 连接，请确认 IP 地址填写正确、TCP 端口已开放，且 Home Assistant 与设备处于同一网段。",
+      "verification_failed": "设备校验未通过，请核对一体机上显示的 8 位验证码后重试。",
+      "device_busy": "设备已被其他客户端连接（MAC 地址已改变），请断开 Conow App、485 适配器或其他 Home Assistant 实例后重试。",
+      "verification_required": "设备要求手动刷新，验证码已失效，请读取一体机上当前显示的 8 位验证码并在「配置」中更新。",
+      "external_control_disabled": "设备的 RTU 外部控制开关未开启，请在 Conow App 的设备面板中打开「启用外部控制 / ModBus RTU」后重试。"
     },
     "step": {
       "user": {
         "title": "连接方式",
-        "description": "选择连接设备的方式：RS-485 串口，或通过 485 转以太网适配器的 Modbus TCP。",
+        "description": "选择连接设备的方式：RS-485 串口、通过 485 转以太网适配器的 Modbus TCP，或直连一体机自身的 Modbus TCP。",
         "data": {
           "modbus_mode": "连接方式"
         }
@@ -27,7 +36,7 @@
           "modbus_slave": "从站地址",
           "modbus_baudrate": "波特率"
         },
-        "description": "默认 **38400 8N1**、从站 **0xA0**。请先在 Conow App 中开启 **启用外部控制 / ModBus RTU**。"
+        "description": "列表会显示 Home Assistant 主机上检测到的串口，可直接选择，也可手动输入路径（如 `/dev/ttyUSB0`）。默认 **38400 8N1**、从站 **0xA0**。请先在 Conow App 中开启 **启用外部控制 / ModBus RTU**。"
       },
       "tcp": {
         "title": "Modbus TCP（以太网适配器）",
@@ -38,22 +47,60 @@
           "modbus_slave": "从站地址"
         },
         "description": "连接你的 485 转以太网适配器（默认 TCP 端口 **502**，从站 **0xA0**）。适配器会把 Modbus TCP 转换为 RTU，设备端无需任何改动。"
+      },
+      "tcp_direct": {
+        "title": "Modbus TCP（直连一体机）",
+        "data": {
+          "device_name": "设备名称",
+          "modbus_host": "主机 / IP 地址",
+          "modbus_tcp_port": "TCP 端口",
+          "modbus_slave": "从站地址",
+          "tcp_verify_code": "验证码"
+        },
+        "description": "连接一体机自身的网口（默认 TCP 端口 **502**，从站 **0xA0**），不经过 485 转以太网适配器。请输入一体机上显示的 **8 位十六进制验证码**，它会写入保持寄存器 **0x2701–0x2702**（9985–9986），只有设备返回校验成功才会完成连接。"
       }
+    },
+    "abort": {
+      "already_configured": "该设备已经配置过了，请直接使用现有的 Conow Local 集成条目。",
+      "already_in_progress": "该设备正在配置中，请先完成或取消当前配置对话框。"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "连接参数",
+        "description": "可修改主机 / IP 地址、TCP 端口、从站地址和验证码。保存前会先用新参数向设备校验。",
+        "data": {
+          "modbus_host": "主机 / IP 地址",
+          "modbus_tcp_port": "TCP 端口",
+          "modbus_slave": "从站地址",
+          "tcp_verify_code": "验证码"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "无法通过 Modbus 连接，请检查连接方式、是否开启「启用外部控制 / ModBus RTU」及从站地址。",
+      "invalid_verify_code": "验证码必须是 8 位十六进制字符。",
+      "tcp_connect_failed": "无法建立 TCP 连接，请确认 IP 地址填写正确、TCP 端口已开放，且 Home Assistant 与设备处于同一网段。",
+      "verification_failed": "设备校验未通过，请核对一体机上显示的 8 位验证码后重试。",
+      "device_busy": "设备已被其他客户端连接（MAC 地址已改变），请断开 Conow App、485 适配器或其他 Home Assistant 实例后重试。",
+      "verification_required": "设备要求手动刷新，验证码已失效，请读取一体机上当前显示的 8 位验证码并在「配置」中更新。",
+      "external_control_disabled": "设备的 RTU 外部控制开关未开启，请在 Conow App 的设备面板中打开「启用外部控制 / ModBus RTU」后重试。"
+    },
+    "abort": {
+      "no_options": "只有 Modbus TCP 条目可以编辑连接参数。"
     }
   },
   "entity": {
     "sensor": {
-      "fault_code": {
-        "name": "故障码"
+      "backup_load_cumulative_export_energy": {
+        "name": "旁路累计输出电量"
       },
-      "battery_voltage": {
-        "name": "电池电压"
+      "backup_load_cumulative_import_energy": {
+        "name": "旁路累计输入电量"
       },
-      "battery_soc": {
-        "name": "电池 SOC"
-      },
-      "battery_design_capacity": {
-        "name": "电池设计容量"
+      "backup_load_power": {
+        "name": "旁路功率"
       },
       "battery_cell_temp_max": {
         "name": "电芯最高温度"
@@ -61,74 +108,259 @@
       "battery_cell_temp_min": {
         "name": "电芯最低温度"
       },
+      "battery_charge_energy_total": {
+        "name": "电池累计充电量"
+      },
       "battery_cumulative_charge_energy": {
         "name": "电池累计充电电量"
       },
       "battery_cumulative_discharge_energy": {
         "name": "电池累计放电电量"
       },
+      "battery_current": {
+        "name": "电池电流"
+      },
+      "battery_design_capacity": {
+        "name": "电池设计容量"
+      },
+      "battery_discharge_energy_total": {
+        "name": "电池累计放电量"
+      },
+      "battery_max_charge_power": {
+        "name": "当前电池允许最大充电功率"
+      },
+      "battery_max_discharge_power": {
+        "name": "当前电池允许最大放电功率"
+      },
+      "battery_power": {
+        "name": "电池功率"
+      },
+      "battery_soc": {
+        "name": "电池 SOC"
+      },
+      "battery_voltage": {
+        "name": "电池电压"
+      },
+      "battery_work_state": {
+        "name": "电池工作状态",
+        "state": {
+          "idle": "空闲",
+          "chg": "充电",
+          "dchg": "放电"
+        }
+      },
+      "bypass_current": {
+        "name": "旁路口电流"
+      },
+      "bypass_frequency": {
+        "name": "旁路口频率"
+      },
+      "bypass_input_energy_total": {
+        "name": "旁路口输入总电量"
+      },
+      "bypass_output_energy_total": {
+        "name": "旁路口输出总电量"
+      },
+      "bypass_power": {
+        "name": "旁路口功率"
+      },
+      "bypass_voltage": {
+        "name": "旁路口电压"
+      },
+      "cell_temp_max": {
+        "name": "最高电芯温度"
+      },
+      "cell_temp_min": {
+        "name": "最低电芯温度"
+      },
+      "design_capacity": {
+        "name": "设计容量"
+      },
+      "device_clock": {
+        "name": "设备时钟"
+      },
+      "device_fault_code": {
+        "name": "设备故障码"
+      },
+      "device_serial": {
+        "name": "设备 SN"
+      },
+      "device_status": {
+        "name": "设备状态"
+      },
+      "fault_code": {
+        "name": "故障码"
+      },
+      "firmware_version": {
+        "name": "固件版本"
+      },
+      "global_ac_charge_power_limit": {
+        "name": "全局 AC 最大充电功率"
+      },
+      "global_ac_discharge_power_limit": {
+        "name": "全局 AC 最大放电功率"
+      },
       "grid_active_power": {
         "name": "电网有功功率"
       },
-      "grid_frequency": {
-        "name": "电网频率"
-      },
-      "grid_cumulative_import_energy": {
-        "name": "累计电网取电电量"
+      "grid_code_export_limit": {
+        "name": "并网输出法规上限"
       },
       "grid_cumulative_export_energy": {
         "name": "累计电网馈电电量"
       },
-      "backup_load_power": {
-        "name": "旁路功率"
+      "grid_cumulative_import_energy": {
+        "name": "累计电网取电电量"
       },
-      "backup_load_cumulative_export_energy": {
-        "name": "旁路累计输出电量"
+      "grid_current": {
+        "name": "电网电流"
       },
-      "backup_load_cumulative_import_energy": {
-        "name": "旁路累计输入电量"
+      "grid_export_energy_total": {
+        "name": "电网累计馈电量"
       },
-      "pv_total_power": {
-        "name": "PV 总输入功率"
+      "grid_frequency": {
+        "name": "电网频率"
       },
-      "pv_total_cumulative_energy": {
-        "name": "PV 累计总发电量"
+      "grid_import_energy_total": {
+        "name": "电网累计买电量"
       },
-      "pv1_power": {
-        "name": "PV1 输入功率"
+      "grid_voltage": {
+        "name": "电网电压"
+      },
+      "hardware_max_ac_charge_power": {
+        "name": "硬件最大 AC 充电功率"
+      },
+      "hardware_max_ac_discharge_power": {
+        "name": "硬件最大 AC 放电功率"
+      },
+      "meter_connection_state": {
+        "name": "电表连接状态",
+        "state": {
+          "已配对已连接": "已配对已连接",
+          "已配对未连接": "已配对未连接",
+          "未配对未连接": "未配对未连接"
+        }
+      },
+      "meter_export_energy_total": {
+        "name": "电表三相累计导出电量"
+      },
+      "meter_import_energy_total": {
+        "name": "电表三相累计导入电量"
+      },
+      "meter_total_power": {
+        "name": "电表总功率"
+      },
+      "phase_a_power": {
+        "name": "A 相功率"
+      },
+      "phase_b_power": {
+        "name": "B 相功率"
+      },
+      "phase_c_power": {
+        "name": "C 相功率"
       },
       "pv1_cumulative_energy": {
         "name": "PV1 累计发电量"
       },
-      "pv2_power": {
-        "name": "PV2 输入功率"
+      "pv1_current": {
+        "name": "PV1 电流"
+      },
+      "pv1_energy": {
+        "name": "PV1 电量"
+      },
+      "pv1_power": {
+        "name": "PV1 输入功率"
+      },
+      "pv1_voltage": {
+        "name": "PV1 电压"
       },
       "pv2_cumulative_energy": {
         "name": "PV2 累计发电量"
       },
-      "pv3_power": {
-        "name": "PV3 输入功率"
+      "pv2_current": {
+        "name": "PV2 电流"
+      },
+      "pv2_energy": {
+        "name": "PV2 电量"
+      },
+      "pv2_power": {
+        "name": "PV2 输入功率"
+      },
+      "pv2_voltage": {
+        "name": "PV2 电压"
       },
       "pv3_cumulative_energy": {
         "name": "PV3 累计发电量"
       },
-      "pv4_power": {
-        "name": "PV4 输入功率"
+      "pv3_current": {
+        "name": "PV3 电流"
+      },
+      "pv3_energy": {
+        "name": "PV3 电量"
+      },
+      "pv3_power": {
+        "name": "PV3 输入功率"
+      },
+      "pv3_voltage": {
+        "name": "PV3 电压"
       },
       "pv4_cumulative_energy": {
         "name": "PV4 累计发电量"
+      },
+      "pv4_current": {
+        "name": "PV4 电流"
+      },
+      "pv4_energy": {
+        "name": "PV4 电量"
+      },
+      "pv4_power": {
+        "name": "PV4 输入功率"
+      },
+      "pv4_voltage": {
+        "name": "PV4 电压"
+      },
+      "pv_energy_total": {
+        "name": "PV 总发电量"
+      },
+      "pv_string_count": {
+        "name": "PV 路数"
+      },
+      "pv_total_cumulative_energy": {
+        "name": "PV 累计总发电量"
+      },
+      "pv_total_power": {
+        "name": "PV 总输入功率"
+      },
+      "remaining_capacity": {
+        "name": "剩余容量"
+      },
+      "soh": {
+        "name": "SOH"
+      },
+      "system_backup_soc": {
+        "name": "系统备用 SoC"
+      },
+      "system_soc": {
+        "name": "系统当前 SoC"
+      },
+      "wifi_signal": {
+        "name": "Wi-Fi 信号强度"
       }
     },
     "binary_sensor": {
-      "system_status_standby": {
-        "name": "系统-待机",
+      "allow_battery_export": {
+        "name": "允许电池逆流",
         "state": {
-          "on": "待机中",
-          "off": "未待机"
+          "on": "允许电池馈网",
+          "off": "禁止电池馈网"
         }
       },
-      "system_status_fault": {
-        "name": "系统-故障"
+      "bypass_switch_state": {
+        "name": "旁路口开关状态",
+        "state": {
+          "on": "开",
+          "off": "关"
+        }
       },
       "system_status_charging": {
         "name": "系统-充电中",
@@ -143,26 +375,195 @@
           "on": "放电中",
           "off": "未放电"
         }
+      },
+      "system_status_fault": {
+        "name": "系统-故障",
+        "state": {
+          "on": "故障",
+          "off": "OK"
+        }
+      },
+      "system_status_standby": {
+        "name": "系统-待机",
+        "state": {
+          "on": "待机中",
+          "off": "未待机"
+        }
       }
     },
     "number": {
-      "grid_charge_power_limit": {
-        "name": "交流充电功率限制"
+      "ac_charge_power_limit": {
+        "name": "AC 充电功率上限"
       },
-      "battery_discharge_power_limit": {
-        "name": "交流放电功率限制"
+      "ac_discharge_power_limit": {
+        "name": "AC 放电功率上限"
+      },
+      "allow_reverse_power": {
+        "name": "允许逆流功率"
       },
       "backup_soc": {
         "name": "备电 SOC"
       },
-      "battery_target_power": {
-        "name": "目标充放电功率"
+      "base_load_setpoint": {
+        "name": "基础负载"
+      },
+      "base_load_slot1_power": {
+        "name": "基础负载时段 1 - 负载功率"
+      },
+      "base_load_slot2_power": {
+        "name": "基础负载时段 2 - 负载功率"
+      },
+      "base_load_slot3_power": {
+        "name": "基础负载时段 3 - 负载功率"
+      },
+      "base_load_slot4_power": {
+        "name": "基础负载时段 4 - 负载功率"
+      },
+      "base_load_slot5_power": {
+        "name": "基础负载时段 5 - 负载功率"
+      },
+      "base_load_slot6_power": {
+        "name": "基础负载时段 6 - 负载功率"
+      },
+      "base_load_slot7_power": {
+        "name": "基础负载时段 7 - 负载功率"
+      },
+      "base_load_slot8_power": {
+        "name": "基础负载时段 8 - 负载功率"
+      },
+      "base_load_slot_count": {
+        "name": "基础负载时段数"
       },
       "battery_cutoff_soc": {
         "name": "充放电截止 SOC"
+      },
+      "battery_discharge_power_limit": {
+        "name": "交流放电功率限制"
+      },
+      "battery_target_power": {
+        "name": "目标充放电功率"
+      },
+      "charge_discharge_cutoff_soc": {
+        "name": "充放电截止 SoC"
+      },
+      "charge_discharge_duration": {
+        "name": "充放电控制时长"
+      },
+      "generator_power": {
+        "name": "柴发功率"
+      },
+      "generator_start_soc": {
+        "name": "柴发开始充电 SoC"
+      },
+      "generator_stop_soc": {
+        "name": "柴发截止 SoC"
+      },
+      "grid_charge_power_limit": {
+        "name": "交流充电功率限制"
+      },
+      "modbus_timeout": {
+        "name": "ModBus 超时时长"
+      },
+      "safety_soc": {
+        "name": "安全 SoC"
+      },
+      "tou_slot1_power": {
+        "name": "用户手动充放电策略 1 - 放电功率"
+      },
+      "tou_slot1_target_soc": {
+        "name": "用户手动充放电策略 1 - 目标 SOC"
+      },
+      "tou_slot2_power": {
+        "name": "用户手动充放电策略 2 - 放电功率"
+      },
+      "tou_slot2_target_soc": {
+        "name": "用户手动充放电策略 2 - 目标 SOC"
+      },
+      "tou_slot3_power": {
+        "name": "用户手动充放电策略 3 - 放电功率"
+      },
+      "tou_slot3_target_soc": {
+        "name": "用户手动充放电策略 3 - 目标 SOC"
+      },
+      "tou_slot4_power": {
+        "name": "用户手动充放电策略 4 - 放电功率"
+      },
+      "tou_slot4_target_soc": {
+        "name": "用户手动充放电策略 4 - 目标 SOC"
+      },
+      "tou_slot5_power": {
+        "name": "用户手动充放电策略 5 - 放电功率"
+      },
+      "tou_slot5_target_soc": {
+        "name": "用户手动充放电策略 5 - 目标 SOC"
+      },
+      "tou_slot6_power": {
+        "name": "用户手动充放电策略 6 - 放电功率"
+      },
+      "tou_slot6_target_soc": {
+        "name": "用户手动充放电策略 6 - 目标 SOC"
+      },
+      "tou_slot7_power": {
+        "name": "用户手动充放电策略 7 - 放电功率"
+      },
+      "tou_slot7_target_soc": {
+        "name": "用户手动充放电策略 7 - 目标 SOC"
+      },
+      "tou_slot8_power": {
+        "name": "用户手动充放电策略 8 - 放电功率"
+      },
+      "tou_slot8_target_soc": {
+        "name": "用户手动充放电策略 8 - 目标 SOC"
+      },
+      "tou_slot_count": {
+        "name": "TOU 时段数"
+      }
+    },
+    "select": {
+      "charge_discharge_direction": {
+        "name": "充放电方向"
+      },
+      "tou_slot1_mode": {
+        "name": "用户手动充放电策略 1 - 工作模式"
+      },
+      "tou_slot2_mode": {
+        "name": "用户手动充放电策略 2 - 工作模式"
+      },
+      "tou_slot3_mode": {
+        "name": "用户手动充放电策略 3 - 工作模式"
+      },
+      "tou_slot4_mode": {
+        "name": "用户手动充放电策略 4 - 工作模式"
+      },
+      "tou_slot5_mode": {
+        "name": "用户手动充放电策略 5 - 工作模式"
+      },
+      "tou_slot6_mode": {
+        "name": "用户手动充放电策略 6 - 工作模式"
+      },
+      "tou_slot7_mode": {
+        "name": "用户手动充放电策略 7 - 工作模式"
+      },
+      "tou_slot8_mode": {
+        "name": "用户手动充放电策略 8 - 工作模式"
+      },
+      "work_mode": {
+        "name": "工作模式"
       }
     },
     "switch": {
+      "bypass_enable": {
+        "name": "Bypass 常开开关"
+      },
+      "do1_state": {
+        "name": "DO1 控制"
+      },
+      "do2_state": {
+        "name": "DO2 控制"
+      },
+      "generator_enable": {
+        "name": "柴发开关"
+      },
       "off_grid_output_enable": {
         "name": "离网输出开关"
       },
@@ -170,14 +571,108 @@
         "name": "PV 弃光开关"
       }
     },
-    "select": {
-      "charge_discharge_direction": {
-        "name": "充放电方向",
-        "state": {
-          "force_charge": "强制充电",
-          "idle": "空闲",
-          "force_discharge": "强制放电"
-        }
+    "time": {
+      "base_load_slot1_end": {
+        "name": "基础负载时段 1 - 结束时间"
+      },
+      "base_load_slot1_start": {
+        "name": "基础负载时段 1 - 开始时间"
+      },
+      "base_load_slot2_end": {
+        "name": "基础负载时段 2 - 结束时间"
+      },
+      "base_load_slot2_start": {
+        "name": "基础负载时段 2 - 开始时间"
+      },
+      "base_load_slot3_end": {
+        "name": "基础负载时段 3 - 结束时间"
+      },
+      "base_load_slot3_start": {
+        "name": "基础负载时段 3 - 开始时间"
+      },
+      "base_load_slot4_end": {
+        "name": "基础负载时段 4 - 结束时间"
+      },
+      "base_load_slot4_start": {
+        "name": "基础负载时段 4 - 开始时间"
+      },
+      "base_load_slot5_end": {
+        "name": "基础负载时段 5 - 结束时间"
+      },
+      "base_load_slot5_start": {
+        "name": "基础负载时段 5 - 开始时间"
+      },
+      "base_load_slot6_end": {
+        "name": "基础负载时段 6 - 结束时间"
+      },
+      "base_load_slot6_start": {
+        "name": "基础负载时段 6 - 开始时间"
+      },
+      "base_load_slot7_end": {
+        "name": "基础负载时段 7 - 结束时间"
+      },
+      "base_load_slot7_start": {
+        "name": "基础负载时段 7 - 开始时间"
+      },
+      "base_load_slot8_end": {
+        "name": "基础负载时段 8 - 结束时间"
+      },
+      "base_load_slot8_start": {
+        "name": "基础负载时段 8 - 开始时间"
+      },
+      "generator_end_time": {
+        "name": "结束时间"
+      },
+      "generator_start_time": {
+        "name": "开始时间"
+      },
+      "tou_slot1_end": {
+        "name": "用户手动充放电策略 1 - 结束时间"
+      },
+      "tou_slot1_start": {
+        "name": "用户手动充放电策略 1 - 开始时间"
+      },
+      "tou_slot2_end": {
+        "name": "用户手动充放电策略 2 - 结束时间"
+      },
+      "tou_slot2_start": {
+        "name": "用户手动充放电策略 2 - 开始时间"
+      },
+      "tou_slot3_end": {
+        "name": "用户手动充放电策略 3 - 结束时间"
+      },
+      "tou_slot3_start": {
+        "name": "用户手动充放电策略 3 - 开始时间"
+      },
+      "tou_slot4_end": {
+        "name": "用户手动充放电策略 4 - 结束时间"
+      },
+      "tou_slot4_start": {
+        "name": "用户手动充放电策略 4 - 开始时间"
+      },
+      "tou_slot5_end": {
+        "name": "用户手动充放电策略 5 - 结束时间"
+      },
+      "tou_slot5_start": {
+        "name": "用户手动充放电策略 5 - 开始时间"
+      },
+      "tou_slot6_end": {
+        "name": "用户手动充放电策略 6 - 结束时间"
+      },
+      "tou_slot6_start": {
+        "name": "用户手动充放电策略 6 - 开始时间"
+      },
+      "tou_slot7_end": {
+        "name": "用户手动充放电策略 7 - 结束时间"
+      },
+      "tou_slot7_start": {
+        "name": "用户手动充放电策略 7 - 开始时间"
+      },
+      "tou_slot8_end": {
+        "name": "用户手动充放电策略 8 - 结束时间"
+      },
+      "tou_slot8_start": {
+        "name": "用户手动充放电策略 8 - 开始时间"
       }
     }
   }

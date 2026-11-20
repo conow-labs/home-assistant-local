@@ -1,22 +1,25 @@
-"""Modbus number entities for writable registers."""
+"""Number entities for writable numeric registers of the active map."""
 
 from __future__ import annotations
 
 from homeassistant.components.number import NumberEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_DEVICE_NAME, DOMAIN
-from .coordinator import ConowLocalCoordinator
-from .entity_factory import build_number_description, register_for_entity
-from .register_map import EntityDef, get_entities
+from .device.coordinator import ConowLocalCoordinator
+from .device.descriptions import (
+    build_device_info,
+    build_number_description,
+    display_value,
+)
+from .device.guard import async_refuse_device_write
+from .maps.entity_model import NUMBER, EntitySpec, specs_for_platform
 
 
-class ConowModbusNumber(CoordinatorEntity[ConowLocalCoordinator], NumberEntity):
-    """Writable Modbus register exposed as a number."""
+class ConowNumber(CoordinatorEntity[ConowLocalCoordinator], NumberEntity):
+    """Writable setting shown on the device page; writes go through the panel."""
 
     _attr_has_entity_name = True
 
@@ -24,29 +27,27 @@ class ConowModbusNumber(CoordinatorEntity[ConowLocalCoordinator], NumberEntity):
         self,
         coordinator: ConowLocalCoordinator,
         entry: ConfigEntry,
-        entity: EntityDef,
+        spec: EntitySpec,
     ) -> None:
         """Initialize number entity."""
         super().__init__(coordinator)
-        self._register_name = entity.register
-        register = register_for_entity(entity)
-        self.entity_description = build_number_description(entity, register)
-        self._attr_unique_id = f"{entry.entry_id}_{entity.code}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name=entry.data[CONF_DEVICE_NAME],
-            manufacturer="CONOW",
-            model="Balcony Solar Storage",
-        )
+        self._entry = entry
+        self._spec = spec
+        self.entity_description = build_number_description(spec)
+        self._attr_unique_id = f"{entry.entry_id}_{spec.unique_code}"
+        self._attr_device_info = build_device_info(coordinator.hass, entry)
 
     @property
-    def native_value(self) -> float | None:
-        """Return current register value."""
-        return self.coordinator.get_register_value("control", self._register_name)
+    def native_value(self) -> int | float | None:
+        """Return the decoded value formatted like the grouping panel."""
+        value = self.coordinator.get_value(self._spec.register.code)
+        if not isinstance(value, (int, float)):
+            return None
+        return display_value(self._spec.register, value)
 
     async def async_set_native_value(self, value: float) -> None:
-        """Write register value to device."""
-        await self.coordinator.async_write_register(self._register_name, value)
+        """Refuse single-register writes from the device page."""
+        async_refuse_device_write(self.hass, self._entry)
 
 
 async def async_setup_entry(
@@ -54,10 +55,11 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up Modbus number entities from registers.json."""
+    """Set up one number per writable numeric register of the active map."""
     coordinator: ConowLocalCoordinator = entry.runtime_data
-    entities = [
-        ConowModbusNumber(coordinator, entry, entity_def)
-        for entity_def in get_entities("number")
-    ]
-    async_add_entities(entities)
+    async_add_entities(
+        ConowNumber(coordinator, entry, spec)
+        for spec in specs_for_platform(
+            coordinator.map_version, NUMBER, coordinator.new_model
+        )
+    )

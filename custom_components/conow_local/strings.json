@@ -5,16 +5,25 @@
     },
     "force_mode_cutoff_required": {
       "message": "Set charge/discharge cutoff SOC between 1 and 100 before force charge or discharge."
+    },
+    "panel_write_required": {
+      "message": "Single controls do not write to the device. Apply the whole group from the Conow Local panel. {url}"
     }
   },
   "config": {
     "error": {
-      "cannot_connect": "Unable to connect over Modbus. Check the connection, Enable External Control / ModBus RTU, and slave address."
+      "cannot_connect": "Unable to connect over Modbus. Check the connection, Enable External Control / ModBus RTU, and slave address.",
+      "invalid_verify_code": "Verification code must be exactly 8 hexadecimal characters.",
+      "tcp_connect_failed": "Cannot open a TCP connection. Check that the IP address is correct, the TCP port is open, and Home Assistant is on the same network as the device.",
+      "verification_failed": "The device rejected the verification code. Check the 8-character code shown on the machine and try again.",
+      "device_busy": "The device is already connected by another client (MAC address changed). Close the other connection (Conow app, RS-485 adapter or another Home Assistant instance) and try again.",
+      "verification_required": "The device asks for a manual refresh: the verification code is no longer valid. Read the current 8-character code from the machine, then update it under Configure.",
+      "external_control_disabled": "The device's RTU external-control switch is off. Turn on “Enable External Control / ModBus RTU” in the device panel of the Conow app, then try again."
     },
     "step": {
       "user": {
         "title": "Connection type",
-        "description": "Choose how to reach the device: RS-485 serial, or Modbus TCP through an RS-485↔Ethernet adapter.",
+        "description": "Choose how to reach the device: RS-485 serial, Modbus TCP through an RS-485↔Ethernet adapter, or Modbus TCP direct to the all-in-one machine.",
         "data": {
           "modbus_mode": "Connection type"
         }
@@ -27,7 +36,7 @@
           "modbus_slave": "Slave address",
           "modbus_baudrate": "Baud rate"
         },
-        "description": "Connect over RS-485 with **38400 8N1** by default (slave **0xA0**). Enable **External Control / ModBus RTU** in the Conow app before continuing."
+        "description": "The list shows serial ports detected on the Home Assistant host; pick one or type a path such as `/dev/ttyUSB0`. Uses **38400 8N1** with slave **0xA0** by default. Enable **External Control / ModBus RTU** in the Conow app before continuing."
       },
       "tcp": {
         "title": "Modbus TCP (Ethernet adapter)",
@@ -38,22 +47,57 @@
           "modbus_slave": "Slave address"
         },
         "description": "Connect to your RS-485↔Ethernet adapter (TCP port **502** by default, slave **0xA0**). The adapter converts Modbus TCP to RTU — the device itself needs no changes."
+      },
+      "tcp_direct": {
+        "title": "Modbus TCP (direct all-in-one)",
+        "data": {
+          "device_name": "Device name",
+          "modbus_host": "Host / IP address",
+          "modbus_tcp_port": "TCP port",
+          "modbus_slave": "Slave address",
+          "tcp_verify_code": "Verification code"
+        },
+        "description": "Connect to the all-in-one machine's own Ethernet port (TCP port **502** by default, slave **0xA0**). No RS-485↔Ethernet adapter is involved. Enter the **8-character hexadecimal verification code** shown on the machine; it is written to holding registers **0x2701–0x2702** (9985–9986) and the connection is accepted only if the device confirms it."
       }
+    },
+    "abort": {
+      "already_configured": "This device is already configured. Open the existing Conow Local integration entry instead.",
+      "already_in_progress": "This device is already being configured. Finish or cancel the open dialog first."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Update verification code",
+        "description": "Enter the 8-character hexadecimal code currently shown on the machine. It is tested against the device before it replaces the stored code.",
+        "data": {
+          "tcp_verify_code": "Verification code"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect over Modbus. Check the connection, Enable External Control / ModBus RTU, and slave address.",
+      "invalid_verify_code": "Verification code must be exactly 8 hexadecimal characters.",
+      "tcp_connect_failed": "Cannot open a TCP connection. Check that the IP address is correct, the TCP port is open, and Home Assistant is on the same network as the device.",
+      "verification_failed": "The device rejected the verification code. Check the 8-character code shown on the machine and try again.",
+      "device_busy": "The device is already connected by another client (MAC address changed). Close the other connection (Conow app, RS-485 adapter or another Home Assistant instance) and try again.",
+      "verification_required": "The device asks for a manual refresh: the verification code is no longer valid. Read the current 8-character code from the machine, then update it under Configure.",
+      "external_control_disabled": "The device's RTU external-control switch is off. Turn on “Enable External Control / ModBus RTU” in the device panel of the Conow app, then try again."
+    },
+    "abort": {
+      "no_options": "Only direct Modbus TCP entries use a verification code."
     }
   },
   "entity": {
     "sensor": {
-      "fault_code": {
-        "name": "Fault Code"
+      "backup_load_cumulative_export_energy": {
+        "name": "Total Bypass Output"
       },
-      "battery_voltage": {
-        "name": "Battery Voltage"
+      "backup_load_cumulative_import_energy": {
+        "name": "Total Bypass Input"
       },
-      "battery_soc": {
-        "name": "Battery SoC"
-      },
-      "battery_design_capacity": {
-        "name": "Design Capacity"
+      "backup_load_power": {
+        "name": "Bypass Power"
       },
       "battery_cell_temp_max": {
         "name": "Max. Cell Temperature"
@@ -61,74 +105,259 @@
       "battery_cell_temp_min": {
         "name": "Min. Cell Temperature"
       },
+      "battery_charge_energy_total": {
+        "name": "Total Battery Charge Energy"
+      },
       "battery_cumulative_charge_energy": {
         "name": "Total Charge Energy"
       },
       "battery_cumulative_discharge_energy": {
         "name": "Total Discharge Energy"
       },
+      "battery_current": {
+        "name": "Battery Current"
+      },
+      "battery_design_capacity": {
+        "name": "Design Capacity"
+      },
+      "battery_discharge_energy_total": {
+        "name": "Total Battery Discharge Energy"
+      },
+      "battery_max_charge_power": {
+        "name": "Current Max. Battery Charge Power"
+      },
+      "battery_max_discharge_power": {
+        "name": "Current Max. Battery Discharge Power"
+      },
+      "battery_power": {
+        "name": "Battery Power"
+      },
+      "battery_soc": {
+        "name": "Battery SoC"
+      },
+      "battery_voltage": {
+        "name": "Battery Voltage"
+      },
+      "battery_work_state": {
+        "name": "Battery Work State",
+        "state": {
+          "idle": "Idle",
+          "chg": "Charging",
+          "dchg": "Discharging"
+        }
+      },
+      "bypass_current": {
+        "name": "Bypass Current"
+      },
+      "bypass_frequency": {
+        "name": "Bypass Frequency"
+      },
+      "bypass_input_energy_total": {
+        "name": "Total Bypass Input Energy"
+      },
+      "bypass_output_energy_total": {
+        "name": "Total Bypass Output Energy"
+      },
+      "bypass_power": {
+        "name": "Bypass Power"
+      },
+      "bypass_voltage": {
+        "name": "Bypass Voltage"
+      },
+      "cell_temp_max": {
+        "name": "Max. Cell Temperature"
+      },
+      "cell_temp_min": {
+        "name": "Min. Cell Temperature"
+      },
+      "design_capacity": {
+        "name": "Design Capacity"
+      },
+      "device_clock": {
+        "name": "Device Clock"
+      },
+      "device_fault_code": {
+        "name": "Device Fault Code"
+      },
+      "device_serial": {
+        "name": "Device Serial Number"
+      },
+      "device_status": {
+        "name": "Device Status"
+      },
+      "fault_code": {
+        "name": "Fault Code"
+      },
+      "firmware_version": {
+        "name": "Firmware Version"
+      },
+      "global_ac_charge_power_limit": {
+        "name": "Global Max. AC Charge Power"
+      },
+      "global_ac_discharge_power_limit": {
+        "name": "Global Max. AC Discharge Power"
+      },
       "grid_active_power": {
         "name": "Grid Active Power"
       },
-      "grid_frequency": {
-        "name": "Grid Frequency"
-      },
-      "grid_cumulative_import_energy": {
-        "name": "Total Grid Import"
+      "grid_code_export_limit": {
+        "name": "Grid Code Export Limit"
       },
       "grid_cumulative_export_energy": {
         "name": "Total Grid Export"
       },
-      "backup_load_power": {
-        "name": "Bypass Power"
+      "grid_cumulative_import_energy": {
+        "name": "Total Grid Import"
       },
-      "backup_load_cumulative_export_energy": {
-        "name": "Total Bypass Output"
+      "grid_current": {
+        "name": "Grid Current"
       },
-      "backup_load_cumulative_import_energy": {
-        "name": "Total Bypass Input"
+      "grid_export_energy_total": {
+        "name": "Total Grid Export Energy"
       },
-      "pv_total_power": {
-        "name": "Total PV Input Power"
+      "grid_frequency": {
+        "name": "Grid Frequency"
       },
-      "pv_total_cumulative_energy": {
-        "name": "Total PV Yield"
+      "grid_import_energy_total": {
+        "name": "Total Grid Import Energy"
       },
-      "pv1_power": {
-        "name": "PV1 Input Power"
+      "grid_voltage": {
+        "name": "Grid Voltage"
+      },
+      "hardware_max_ac_charge_power": {
+        "name": "Hardware Max. AC Charge Power"
+      },
+      "hardware_max_ac_discharge_power": {
+        "name": "Hardware Max. AC Discharge Power"
+      },
+      "meter_connection_state": {
+        "name": "Meter Connection State",
+        "state": {
+          "已配对已连接": "Paired & connected",
+          "已配对未连接": "Paired, not connected",
+          "未配对未连接": "Unpaired, not connected"
+        }
+      },
+      "meter_export_energy_total": {
+        "name": "Meter Total Export Energy"
+      },
+      "meter_import_energy_total": {
+        "name": "Meter Total Import Energy"
+      },
+      "meter_total_power": {
+        "name": "Meter Total Power"
+      },
+      "phase_a_power": {
+        "name": "Phase A Power"
+      },
+      "phase_b_power": {
+        "name": "Phase B Power"
+      },
+      "phase_c_power": {
+        "name": "Phase C Power"
       },
       "pv1_cumulative_energy": {
         "name": "PV1 Total Yield"
       },
-      "pv2_power": {
-        "name": "PV2 Input Power"
+      "pv1_current": {
+        "name": "PV1 Current"
+      },
+      "pv1_energy": {
+        "name": "PV1 Energy"
+      },
+      "pv1_power": {
+        "name": "PV1 Input Power"
+      },
+      "pv1_voltage": {
+        "name": "PV1 Voltage"
       },
       "pv2_cumulative_energy": {
         "name": "PV2 Total Yield"
       },
-      "pv3_power": {
-        "name": "PV3 Input Power"
+      "pv2_current": {
+        "name": "PV2 Current"
+      },
+      "pv2_energy": {
+        "name": "PV2 Energy"
+      },
+      "pv2_power": {
+        "name": "PV2 Input Power"
+      },
+      "pv2_voltage": {
+        "name": "PV2 Voltage"
       },
       "pv3_cumulative_energy": {
         "name": "PV3 Total Yield"
       },
-      "pv4_power": {
-        "name": "PV4 Input Power"
+      "pv3_current": {
+        "name": "PV3 Current"
+      },
+      "pv3_energy": {
+        "name": "PV3 Energy"
+      },
+      "pv3_power": {
+        "name": "PV3 Input Power"
+      },
+      "pv3_voltage": {
+        "name": "PV3 Voltage"
       },
       "pv4_cumulative_energy": {
         "name": "PV4 Total Yield"
+      },
+      "pv4_current": {
+        "name": "PV4 Current"
+      },
+      "pv4_energy": {
+        "name": "PV4 Energy"
+      },
+      "pv4_power": {
+        "name": "PV4 Input Power"
+      },
+      "pv4_voltage": {
+        "name": "PV4 Voltage"
+      },
+      "pv_energy_total": {
+        "name": "Total PV Energy"
+      },
+      "pv_string_count": {
+        "name": "PV String Count"
+      },
+      "pv_total_cumulative_energy": {
+        "name": "Total PV Yield"
+      },
+      "pv_total_power": {
+        "name": "Total PV Input Power"
+      },
+      "remaining_capacity": {
+        "name": "Remaining Capacity"
+      },
+      "soh": {
+        "name": "SOH"
+      },
+      "system_backup_soc": {
+        "name": "System Backup SoC"
+      },
+      "system_soc": {
+        "name": "System SoC"
+      },
+      "wifi_signal": {
+        "name": "Wi-Fi Signal Strength"
       }
     },
     "binary_sensor": {
-      "system_status_standby": {
-        "name": "System–Standby",
+      "allow_battery_export": {
+        "name": "Allow Battery Export",
         "state": {
-          "on": "Standby",
-          "off": "Not in standby"
+          "on": "Battery export enabled",
+          "off": "Battery export disabled"
         }
       },
-      "system_status_fault": {
-        "name": "System–Fault"
+      "bypass_switch_state": {
+        "name": "Bypass Switch State",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "system_status_charging": {
         "name": "System–Charging",
@@ -143,26 +372,195 @@
           "on": "Discharging",
           "off": "Not discharging"
         }
+      },
+      "system_status_fault": {
+        "name": "System–Fault",
+        "state": {
+          "on": "Fault",
+          "off": "OK"
+        }
+      },
+      "system_status_standby": {
+        "name": "System–Standby",
+        "state": {
+          "on": "Standby",
+          "off": "Not in standby"
+        }
       }
     },
     "number": {
-      "grid_charge_power_limit": {
+      "ac_charge_power_limit": {
         "name": "AC Charge Power Limit"
       },
-      "battery_discharge_power_limit": {
+      "ac_discharge_power_limit": {
         "name": "AC Discharge Power Limit"
+      },
+      "allow_reverse_power": {
+        "name": "Allowed Reverse Power"
       },
       "backup_soc": {
         "name": "Backup SoC"
       },
-      "battery_target_power": {
-        "name": "Target Charge / Discharge Power"
+      "base_load_setpoint": {
+        "name": "Base Load"
+      },
+      "base_load_slot1_power": {
+        "name": "Base Load Slot 1 Power"
+      },
+      "base_load_slot2_power": {
+        "name": "Base Load Slot 2 Power"
+      },
+      "base_load_slot3_power": {
+        "name": "Base Load Slot 3 Power"
+      },
+      "base_load_slot4_power": {
+        "name": "Base Load Slot 4 Power"
+      },
+      "base_load_slot5_power": {
+        "name": "Base Load Slot 5 Power"
+      },
+      "base_load_slot6_power": {
+        "name": "Base Load Slot 6 Power"
+      },
+      "base_load_slot7_power": {
+        "name": "Base Load Slot 7 Power"
+      },
+      "base_load_slot8_power": {
+        "name": "Base Load Slot 8 Power"
+      },
+      "base_load_slot_count": {
+        "name": "Base Load Slot Count"
       },
       "battery_cutoff_soc": {
         "name": "Charge / Discharge Cut-off SoC"
+      },
+      "battery_discharge_power_limit": {
+        "name": "AC Discharge Power Limit"
+      },
+      "battery_target_power": {
+        "name": "Target Charge / Discharge Power"
+      },
+      "charge_discharge_cutoff_soc": {
+        "name": "Charge/Discharge Cutoff SoC"
+      },
+      "charge_discharge_duration": {
+        "name": "Charge/Discharge Duration"
+      },
+      "generator_power": {
+        "name": "Generator Power"
+      },
+      "generator_start_soc": {
+        "name": "Generator Start SoC"
+      },
+      "generator_stop_soc": {
+        "name": "Generator Stop SoC"
+      },
+      "grid_charge_power_limit": {
+        "name": "AC Charge Power Limit"
+      },
+      "modbus_timeout": {
+        "name": "Modbus Timeout"
+      },
+      "safety_soc": {
+        "name": "Safety SoC"
+      },
+      "tou_slot1_power": {
+        "name": "Manual Charge/Discharge Strategy 1 Discharge Power"
+      },
+      "tou_slot1_target_soc": {
+        "name": "Manual Charge/Discharge Strategy 1 Target SoC"
+      },
+      "tou_slot2_power": {
+        "name": "Manual Charge/Discharge Strategy 2 Discharge Power"
+      },
+      "tou_slot2_target_soc": {
+        "name": "Manual Charge/Discharge Strategy 2 Target SoC"
+      },
+      "tou_slot3_power": {
+        "name": "Manual Charge/Discharge Strategy 3 Discharge Power"
+      },
+      "tou_slot3_target_soc": {
+        "name": "Manual Charge/Discharge Strategy 3 Target SoC"
+      },
+      "tou_slot4_power": {
+        "name": "Manual Charge/Discharge Strategy 4 Discharge Power"
+      },
+      "tou_slot4_target_soc": {
+        "name": "Manual Charge/Discharge Strategy 4 Target SoC"
+      },
+      "tou_slot5_power": {
+        "name": "Manual Charge/Discharge Strategy 5 Discharge Power"
+      },
+      "tou_slot5_target_soc": {
+        "name": "Manual Charge/Discharge Strategy 5 Target SoC"
+      },
+      "tou_slot6_power": {
+        "name": "Manual Charge/Discharge Strategy 6 Discharge Power"
+      },
+      "tou_slot6_target_soc": {
+        "name": "Manual Charge/Discharge Strategy 6 Target SoC"
+      },
+      "tou_slot7_power": {
+        "name": "Manual Charge/Discharge Strategy 7 Discharge Power"
+      },
+      "tou_slot7_target_soc": {
+        "name": "Manual Charge/Discharge Strategy 7 Target SoC"
+      },
+      "tou_slot8_power": {
+        "name": "Manual Charge/Discharge Strategy 8 Discharge Power"
+      },
+      "tou_slot8_target_soc": {
+        "name": "Manual Charge/Discharge Strategy 8 Target SoC"
+      },
+      "tou_slot_count": {
+        "name": "TOU Slot Count"
+      }
+    },
+    "select": {
+      "charge_discharge_direction": {
+        "name": "Charge/Discharge Direction"
+      },
+      "tou_slot1_mode": {
+        "name": "Manual Charge/Discharge Strategy 1 Work Mode"
+      },
+      "tou_slot2_mode": {
+        "name": "Manual Charge/Discharge Strategy 2 Work Mode"
+      },
+      "tou_slot3_mode": {
+        "name": "Manual Charge/Discharge Strategy 3 Work Mode"
+      },
+      "tou_slot4_mode": {
+        "name": "Manual Charge/Discharge Strategy 4 Work Mode"
+      },
+      "tou_slot5_mode": {
+        "name": "Manual Charge/Discharge Strategy 5 Work Mode"
+      },
+      "tou_slot6_mode": {
+        "name": "Manual Charge/Discharge Strategy 6 Work Mode"
+      },
+      "tou_slot7_mode": {
+        "name": "Manual Charge/Discharge Strategy 7 Work Mode"
+      },
+      "tou_slot8_mode": {
+        "name": "Manual Charge/Discharge Strategy 8 Work Mode"
+      },
+      "work_mode": {
+        "name": "Work Mode"
       }
     },
     "switch": {
+      "bypass_enable": {
+        "name": "Bypass Always-On Switch"
+      },
+      "do1_state": {
+        "name": "DO1 Control"
+      },
+      "do2_state": {
+        "name": "DO2 Control"
+      },
+      "generator_enable": {
+        "name": "Generator Switch"
+      },
       "off_grid_output_enable": {
         "name": "Off-Grid Output Switch"
       },
@@ -170,14 +568,108 @@
         "name": "PV Curtailment Switch"
       }
     },
-    "select": {
-      "charge_discharge_direction": {
-        "name": "Charge / Discharge Direction",
-        "state": {
-          "force_charge": "Force Charge",
-          "idle": "Idle",
-          "force_discharge": "Force Discharge"
-        }
+    "time": {
+      "base_load_slot1_end": {
+        "name": "Base Load Slot 1 End Time"
+      },
+      "base_load_slot1_start": {
+        "name": "Base Load Slot 1 Start Time"
+      },
+      "base_load_slot2_end": {
+        "name": "Base Load Slot 2 End Time"
+      },
+      "base_load_slot2_start": {
+        "name": "Base Load Slot 2 Start Time"
+      },
+      "base_load_slot3_end": {
+        "name": "Base Load Slot 3 End Time"
+      },
+      "base_load_slot3_start": {
+        "name": "Base Load Slot 3 Start Time"
+      },
+      "base_load_slot4_end": {
+        "name": "Base Load Slot 4 End Time"
+      },
+      "base_load_slot4_start": {
+        "name": "Base Load Slot 4 Start Time"
+      },
+      "base_load_slot5_end": {
+        "name": "Base Load Slot 5 End Time"
+      },
+      "base_load_slot5_start": {
+        "name": "Base Load Slot 5 Start Time"
+      },
+      "base_load_slot6_end": {
+        "name": "Base Load Slot 6 End Time"
+      },
+      "base_load_slot6_start": {
+        "name": "Base Load Slot 6 Start Time"
+      },
+      "base_load_slot7_end": {
+        "name": "Base Load Slot 7 End Time"
+      },
+      "base_load_slot7_start": {
+        "name": "Base Load Slot 7 Start Time"
+      },
+      "base_load_slot8_end": {
+        "name": "Base Load Slot 8 End Time"
+      },
+      "base_load_slot8_start": {
+        "name": "Base Load Slot 8 Start Time"
+      },
+      "generator_end_time": {
+        "name": "Generator End Time"
+      },
+      "generator_start_time": {
+        "name": "Generator Start Time"
+      },
+      "tou_slot1_end": {
+        "name": "Manual Charge/Discharge Strategy 1 End Time"
+      },
+      "tou_slot1_start": {
+        "name": "Manual Charge/Discharge Strategy 1 Start Time"
+      },
+      "tou_slot2_end": {
+        "name": "Manual Charge/Discharge Strategy 2 End Time"
+      },
+      "tou_slot2_start": {
+        "name": "Manual Charge/Discharge Strategy 2 Start Time"
+      },
+      "tou_slot3_end": {
+        "name": "Manual Charge/Discharge Strategy 3 End Time"
+      },
+      "tou_slot3_start": {
+        "name": "Manual Charge/Discharge Strategy 3 Start Time"
+      },
+      "tou_slot4_end": {
+        "name": "Manual Charge/Discharge Strategy 4 End Time"
+      },
+      "tou_slot4_start": {
+        "name": "Manual Charge/Discharge Strategy 4 Start Time"
+      },
+      "tou_slot5_end": {
+        "name": "Manual Charge/Discharge Strategy 5 End Time"
+      },
+      "tou_slot5_start": {
+        "name": "Manual Charge/Discharge Strategy 5 Start Time"
+      },
+      "tou_slot6_end": {
+        "name": "Manual Charge/Discharge Strategy 6 End Time"
+      },
+      "tou_slot6_start": {
+        "name": "Manual Charge/Discharge Strategy 6 Start Time"
+      },
+      "tou_slot7_end": {
+        "name": "Manual Charge/Discharge Strategy 7 End Time"
+      },
+      "tou_slot7_start": {
+        "name": "Manual Charge/Discharge Strategy 7 Start Time"
+      },
+      "tou_slot8_end": {
+        "name": "Manual Charge/Discharge Strategy 8 End Time"
+      },
+      "tou_slot8_start": {
+        "name": "Manual Charge/Discharge Strategy 8 Start Time"
       }
     }
   }

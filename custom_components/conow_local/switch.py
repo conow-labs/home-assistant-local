@@ -1,22 +1,21 @@
-"""Modbus switch entities."""
+"""Modbus switch entities for the active register map."""
 
 from __future__ import annotations
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_DEVICE_NAME, DOMAIN
-from .coordinator import ConowLocalCoordinator
-from .entity_factory import build_switch_description
-from .register_map import EntityDef, get_entities
+from .device.coordinator import ConowLocalCoordinator
+from .device.descriptions import build_device_info, build_switch_description
+from .device.guard import async_refuse_device_write
+from .maps.entity_model import SWITCH, EntitySpec, specs_for_platform
 
 
-class ConowModbusSwitch(CoordinatorEntity[ConowLocalCoordinator], SwitchEntity):
-    """Writable on/off Modbus register."""
+class ConowSwitch(CoordinatorEntity[ConowLocalCoordinator], SwitchEntity):
+    """Writable on/off register; writes are refused on the device page."""
 
     _attr_has_entity_name = True
 
@@ -24,35 +23,31 @@ class ConowModbusSwitch(CoordinatorEntity[ConowLocalCoordinator], SwitchEntity):
         self,
         coordinator: ConowLocalCoordinator,
         entry: ConfigEntry,
-        entity: EntityDef,
+        spec: EntitySpec,
     ) -> None:
         """Initialize switch entity."""
         super().__init__(coordinator)
-        self._register_name = entity.register
-        self.entity_description = build_switch_description(entity)
-        self._attr_unique_id = f"{entry.entry_id}_{entity.code}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name=entry.data[CONF_DEVICE_NAME],
-            manufacturer="CONOW",
-            model="Balcony Solar Storage",
-        )
+        self._entry = entry
+        self._spec = spec
+        self.entity_description = build_switch_description(spec)
+        self._attr_unique_id = f"{entry.entry_id}_{spec.unique_code}"
+        self._attr_device_info = build_device_info(coordinator.hass, entry)
 
     @property
     def is_on(self) -> bool | None:
-        """Return switch state."""
-        value = self.coordinator.get_register_value("control", self._register_name)
-        if value is None:
+        """Return the register's raw 0/1 state."""
+        raw = self.coordinator.get_raw(self._spec.register.code)
+        if not isinstance(raw, int):
             return None
-        return bool(int(value))
+        return bool(raw)
 
     async def async_turn_on(self, **kwargs: object) -> None:
-        """Turn switch on."""
-        await self.coordinator.async_write_register_raw(self._register_name, 1)
+        """Refuse single-register writes from the device page."""
+        async_refuse_device_write(self.coordinator.hass, self._entry)
 
     async def async_turn_off(self, **kwargs: object) -> None:
-        """Turn switch off."""
-        await self.coordinator.async_write_register_raw(self._register_name, 0)
+        """Refuse single-register writes from the device page."""
+        async_refuse_device_write(self.coordinator.hass, self._entry)
 
 
 async def async_setup_entry(
@@ -60,10 +55,11 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up Modbus switch entities from registers.json."""
+    """Set up one switch per writable boolean register of the active map."""
     coordinator: ConowLocalCoordinator = entry.runtime_data
-    entities = [
-        ConowModbusSwitch(coordinator, entry, entity_def)
-        for entity_def in get_entities("switch")
-    ]
-    async_add_entities(entities)
+    async_add_entities(
+        ConowSwitch(coordinator, entry, spec)
+        for spec in specs_for_platform(
+            coordinator.map_version, SWITCH, coordinator.new_model
+        )
+    )

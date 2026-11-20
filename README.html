@@ -1,0 +1,2368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Conow Local — Home Assistant Integration</title>
+<style>
+  :root {
+    --blue: #03a9f4;
+    --blue-dark: #0277bd;
+    --ink: #16222b;
+    --muted: #5b6b76;
+    --bg: #eef3f8;
+    --card: #ffffff;
+    --line: #dbe4ec;
+    --soft: #f4f8fb;
+    --ok: #2e7d32;
+    --ok-bg: #edf7ee;
+    --warn: #9a5b00;
+    --warn-bg: #fff6e5;
+    --danger: #b3261e;
+    --danger-bg: #fdecea;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(16, 36, 50, .06), 0 10px 30px rgba(16, 36, 50, .07);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  code {
+    font: .9em/1.4 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    background: #eef3f8;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 1px 6px;
+  }
+  a { color: var(--blue-dark); }
+
+  /* ---------- toolbar ---------- */
+  .toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 10px 40px;
+    background: rgba(255, 255, 255, .86);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: saturate(1.4) blur(10px);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-weight: 700;
+    font-size: .95rem;
+    white-space: nowrap;
+  }
+  .brand .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--blue);
+    box-shadow: 0 0 0 4px rgba(3, 169, 244, .16);
+  }
+  .toolbar nav {
+    display: flex;
+    gap: 16px;
+    margin-left: 8px;
+    font-size: .88rem;
+  }
+  .toolbar nav a { color: var(--muted); text-decoration: none; }
+  .toolbar nav a:hover { color: var(--blue-dark); }
+  .lang-switch {
+    display: flex;
+    gap: 2px;
+    margin-left: auto;
+    padding: 3px;
+    background: #e7eef5;
+    border-radius: 999px;
+  }
+  .lang-switch button {
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: .82rem;
+    font-weight: 600;
+    padding: 5px 11px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .lang-switch button.active {
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 1px 3px rgba(16, 36, 50, .15);
+  }
+
+  .wrap { width: 100%; padding: 22px 40px 70px; }
+
+  .page-head { padding: 6px 0 2px; }
+  .page-head .eyebrow { margin: 0 0 6px; color: var(--muted); }
+  .page-head h1 { margin: 0 0 8px; font-size: clamp(1.6rem, 3vw, 2.1rem); letter-spacing: -.02em; }
+  .page-head .lead { margin: 0; max-width: 980px; color: var(--muted); font-size: 1rem; }
+
+  /* ---------- hero ---------- */
+  .hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+    padding: 42px 42px 34px;
+    color: #fff;
+    background:
+      radial-gradient(1200px 420px at 100% -10%, rgba(3, 169, 244, .55), transparent 60%),
+      linear-gradient(135deg, #0b2233 0%, #123449 60%, #0e2a3d 100%);
+    box-shadow: var(--shadow);
+  }
+  .hero::after {
+    content: "";
+    position: absolute;
+    right: -70px; top: -70px;
+    width: 280px; height: 280px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 50%;
+  }
+  .eyebrow {
+    margin: 0 0 10px;
+    font-size: .78rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, .66);
+  }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(1.7rem, 3.6vw, 2.5rem); line-height: 1.2; }
+  .hero p.lead { margin: 0; max-width: 720px; color: rgba(255, 255, 255, .82); font-size: 1.02rem; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 26px; }
+  .badge {
+    font-size: .78rem;
+    letter-spacing: .02em;
+    padding: 5px 12px;
+    border-radius: 999px;
+    color: #dff3ff;
+    background: rgba(255, 255, 255, .1);
+    border: 1px solid rgba(255, 255, 255, .16);
+  }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    border-radius: 10px;
+    padding: 9px 18px;
+    font: inherit;
+    font-size: .92rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .btn.primary { background: var(--blue); color: #04202f; }
+  .btn.primary:hover { background: #29b8f7; }
+  .btn.ghost { color: #dff3ff; border: 1px solid rgba(255, 255, 255, .28); }
+  .btn.ghost:hover { border-color: rgba(255, 255, 255, .5); }
+
+  /* ---------- sections ---------- */
+  section { margin-top: 46px; scroll-margin-top: 74px; }
+  .section-head { margin: 0 0 16px; }
+  .section-head h2 { margin: 0 0 6px; font-size: 1.42rem; letter-spacing: -.01em; }
+  .section-head p { margin: 0; color: var(--muted); max-width: 780px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  /* ---------- diff table ---------- */
+  .table-wrap { overflow-x: auto; }
+  table.diff {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .92rem;
+  }
+  table.diff th, table.diff td {
+    text-align: left;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  table.diff thead th {
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    background: var(--soft);
+  }
+  table.diff td:first-child { font-weight: 600; white-space: nowrap; }
+  table.diff tr:last-child td { border-bottom: 0; }
+  table.diff td.v2 { background: #f2fbff; }
+  blockquote.quote {
+    margin: 16px 0 0;
+    padding: 14px 18px;
+    border-left: 3px solid var(--blue);
+    background: var(--soft);
+    border-radius: 0 10px 10px 0;
+    color: #33454f;
+    font-size: .92rem;
+  }
+  blockquote.quote cite {
+    display: block;
+    margin-top: 6px;
+    color: var(--muted);
+    font-style: normal;
+    font-size: .8rem;
+  }
+
+  /* ---------- demos ---------- */
+  .demo {
+    display: grid;
+    grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+    gap: 26px;
+    align-items: start;
+    padding: 24px;
+  }
+  .demo + .demo { border-top: 1px solid var(--line); }
+  .demo-copy h3 { margin: 6px 0 8px; font-size: 1.12rem; }
+  .demo-copy p { margin: 0 0 12px; color: var(--muted); font-size: .92rem; }
+  .demo-flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .demo-flag .pulse {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #e53935;
+    box-shadow: 0 0 0 0 rgba(229, 57, 53, .45);
+    animation: pulse 1.8s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(229, 57, 53, .4); }
+    70% { box-shadow: 0 0 0 8px rgba(229, 57, 53, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0); }
+  }
+  .replay {
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--muted);
+    font: inherit;
+    font-size: .8rem;
+    border-radius: 8px;
+    padding: 5px 11px;
+    cursor: pointer;
+  }
+  .replay:hover { color: var(--blue-dark); border-color: var(--blue); }
+
+  /* ---------- mock panel ---------- */
+  .mock {
+    background: #f7fafc;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 12px 30px rgba(16, 36, 50, .08);
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .mock-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+    font-size: .82rem;
+    color: var(--muted);
+  }
+  .mock-head .logo {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+    color: #fff; font-size: .7rem; font-weight: 800;
+    display: grid; place-items: center;
+  }
+  .mock-head b { color: var(--ink); font-size: .86rem; }
+  .mock-head .spacer { margin-left: auto; }
+  .mock-head .refresh {
+    color: var(--blue-dark);
+    font-size: .78rem;
+    white-space: nowrap;
+  }
+  .mock-body { padding: 12px; display: grid; gap: 12px; }
+  .group {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .group-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .group-head h4 { margin: 0; font-size: .92rem; }
+  .group-head .chev { color: #9aabb7; font-size: .8rem; }
+  .apply {
+    margin-left: auto;
+    border: 0;
+    border-radius: 9px;
+    background: var(--blue);
+    color: #04202f;
+    font: inherit;
+    font-size: .78rem;
+    font-weight: 700;
+    padding: 7px 12px;
+    cursor: pointer;
+    transition: transform .12s ease, background .15s ease, opacity .15s ease;
+  }
+  .apply:hover { background: #29b8f7; }
+  .apply.pressed { transform: scale(.94); }
+  .apply:disabled { opacity: .55; cursor: default; }
+  .row {
+    display: grid;
+    grid-template-columns: minmax(120px, 1.1fr) minmax(0, 1.5fr);
+    align-items: center;
+    gap: 12px;
+    padding: 8px 6px;
+    border-radius: 8px;
+    transition: background .25s ease;
+  }
+  .row + .row { border-top: 1px dashed #e6edf3; }
+  .row-label { font-size: .82rem; color: #3d4e59; }
+  .row.hl { background: #e9f7ff; }
+  .seg {
+    display: flex;
+    gap: 4px;
+    padding: 3px;
+    background: #eef3f8;
+    border-radius: 9px;
+  }
+  .seg button {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    border-radius: 7px;
+    padding: 5px 4px;
+    font: inherit;
+    font-size: .78rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+  }
+  .seg button.on {
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 1px 3px rgba(16, 36, 50, .16);
+    font-weight: 600;
+  }
+  .slider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .track {
+    position: relative;
+    flex: 1;
+    height: 5px;
+    border-radius: 999px;
+    background: #dfe8ef;
+    cursor: pointer;
+  }
+  .fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: calc(var(--p, .32) * 100%);
+    border-radius: 999px;
+    background: var(--blue);
+    transition: width .12s linear;
+  }
+  .knob {
+    position: absolute;
+    top: 50%;
+    left: calc(var(--p, .32) * 100%);
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--blue);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 1px 3px rgba(16, 36, 50, .25);
+    transition: left .12s linear;
+  }
+  .slider-value {
+    min-width: 62px;
+    text-align: right;
+    font-size: .8rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  .num {
+    justify-self: end;
+    min-width: 72px;
+    text-align: right;
+    padding: 5px 8px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: #fff;
+    font-size: .8rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .valueflash { animation: valueflash .6s ease; }
+  @keyframes valueflash {
+    0% { background: #d7f0ff; }
+    100% { background: transparent; }
+  }
+  .live-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 1.2fr) minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    padding: 7px 6px;
+    font-size: .82rem;
+  }
+  .live-row + .live-row { border-top: 1px dashed #e6edf3; }
+  .live-row .val {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    border-radius: 6px;
+    padding: 1px 4px;
+  }
+  .notice {
+    display: none;
+    margin-top: 10px;
+    padding: 9px 12px;
+    border-radius: 9px;
+    font-size: .8rem;
+    line-height: 1.5;
+  }
+  .notice.show { display: block; animation: noticein .25s ease; }
+  .notice.ok { background: var(--ok-bg); color: #1d5720; border: 1px solid #c9e6ca; }
+  .notice.warn { background: var(--warn-bg); color: #744400; border: 1px solid #f0d9a8; }
+  @keyframes noticein {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .dialog {
+    display: none;
+    position: relative;
+    margin-top: 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 12px 30px rgba(16, 36, 50, .18);
+    padding: 12px 14px;
+    animation: noticein .2s ease;
+  }
+  .dialog.show { display: block; }
+  .dialog b { display: block; font-size: .84rem; margin-bottom: 3px; }
+  .dialog p { margin: 0 0 10px; font-size: .8rem; color: var(--muted); }
+  .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
+  .mini {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 8px;
+    font: inherit;
+    font-size: .78rem;
+    padding: 5px 12px;
+    cursor: pointer;
+  }
+  .mini.primary { background: var(--blue); border-color: var(--blue); color: #04202f; font-weight: 700; }
+  .mini.primary.pressed { transform: scale(.95); }
+
+  /* ---------- write path ---------- */
+  .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .step {
+    position: relative;
+    padding: 18px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+    transition: border-color .3s ease, box-shadow .3s ease, transform .3s ease;
+  }
+  .step.active {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(3, 169, 244, .14);
+    transform: translateY(-2px);
+  }
+  .step .n {
+    display: inline-grid;
+    place-items: center;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: #e7f4fc;
+    color: var(--blue-dark);
+    font-size: .76rem;
+    font-weight: 800;
+    margin-bottom: 9px;
+  }
+  .step h3 { margin: 0 0 6px; font-size: .98rem; }
+  .step p { margin: 0; color: var(--muted); font-size: .86rem; }
+  .frame {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: 16px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: #0f1720;
+    color: #cfe6f5;
+    font: .8rem/1.6 "SFMono-Regular", Consolas, monospace;
+  }
+  .frame .chip {
+    padding: 1px 7px;
+    border-radius: 5px;
+    background: rgba(3, 169, 244, .16);
+    color: #8fdcff;
+  }
+
+  /* ---------- refuse / prep / sources ---------- */
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .refuse {
+    padding: 16px 18px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+  }
+  .refuse .code {
+    display: inline-block;
+    font: 700 .72rem/1 "SFMono-Regular", Consolas, monospace;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--danger-bg);
+    color: var(--danger);
+    margin-bottom: 8px;
+  }
+  .refuse h3 { margin: 0 0 5px; font-size: .95rem; }
+  .refuse p { margin: 0; color: var(--muted); font-size: .86rem; }
+  .prep { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .prep-item {
+    display: flex;
+    gap: 10px;
+    padding: 14px 16px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    font-size: .88rem;
+  }
+  .prep-item .tick {
+    flex: 0 0 auto;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--ok-bg);
+    color: var(--ok);
+    display: grid;
+    place-items: center;
+    font-size: .72rem;
+    font-weight: 800;
+    margin-top: 2px;
+  }
+  .sources { padding: 20px 24px; }
+  .sources ul { margin: 10px 0 0; padding-left: 20px; }
+  .sources li { margin: 5px 0; font-size: .9rem; }
+  .footer {
+    margin-top: 34px;
+    text-align: center;
+    color: #8595a0;
+    font-size: .78rem;
+  }
+
+  /* ---------- tabs ---------- */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin: 26px 0 0;
+    padding: 5px;
+    background: #e4ecf3;
+    border-radius: 12px;
+    width: fit-content;
+  }
+  .tabs button {
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: .88rem;
+    font-weight: 600;
+    padding: 8px 18px;
+    border-radius: 9px;
+    cursor: pointer;
+  }
+  .tabs button.active {
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 1px 4px rgba(16, 36, 50, .14);
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ---------- version timeline ---------- */
+  .timeline { display: grid; gap: 10px; }
+  .release {
+    display: grid;
+    grid-template-columns: 118px 1fr;
+    gap: 16px;
+    padding: 15px 18px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+  .release .date { font-weight: 700; font-size: .84rem; color: var(--blue-dark); }
+  .release h3 { margin: 0 0 3px; font-size: .95rem; }
+  .release p { margin: 0; color: var(--muted); font-size: .87rem; }
+
+  /* ---------- usage steps ---------- */
+  .use { padding: 20px 22px; }
+  .use-head { display: flex; gap: 14px; align-items: flex-start; }
+  .use-num {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #e7f4fc;
+    color: var(--blue-dark);
+    display: inline-grid;
+    place-items: center;
+    font-size: .8rem;
+    font-weight: 800;
+  }
+  .use-head h3 { margin: 0 0 4px; font-size: 1.02rem; }
+  .use-head p { margin: 0; color: var(--muted); font-size: .9rem; }
+  .panel-url { margin: 10px 0 0; font-size: .84rem; color: var(--muted); }
+  .demo-step { display: flex; align-items: center; gap: 9px; }
+  .demo-step .use-num { width: 24px; height: 24px; font-size: .72rem; }
+
+  /* ---------- app Modbus Service mock ---------- */
+  .app-demo { display: flex; justify-content: center; padding: 16px 0 6px; }
+  .phone {
+    width: 300px;
+    border-radius: 22px;
+    background: #0d0d0f;
+    color: #f5f5f7;
+    padding: 18px 16px 16px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, .28);
+    font-size: .8rem;
+  }
+  .phone-title { text-align: center; font-weight: 700; font-size: .92rem; margin-bottom: 14px; }
+  .svc-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: #1c1c1e; border-radius: 14px; padding: 12px 14px; margin-bottom: 10px;
+  }
+  .svc-row small { display: block; color: #9a9aa0; font-size: .68rem; margin-top: 2px; }
+  .svc-card { background: #1c1c1e; border-radius: 14px; padding: 12px 14px; }
+  .svc-card .svc-row { background: transparent; padding: 0 0 8px; margin: 0; }
+  .svc-line {
+    display: flex; justify-content: space-between; gap: 12px;
+    padding: 8px 0; border-bottom: 1px solid #2c2c2e;
+    color: #9a9aa0; font-size: .72rem;
+  }
+  .svc-line b { color: #f5f5f7; font-weight: 600; }
+  .svc-line:last-of-type { border-bottom: 0; }
+  .toggle {
+    width: 40px; height: 22px; border-radius: 999px; background: #3a3a3c;
+    position: relative; transition: background .25s ease; flex: 0 0 auto;
+  }
+  .toggle i {
+    position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
+    border-radius: 50%; background: #fff; transition: left .25s ease;
+  }
+  .toggle.on { background: #0a84ff; }
+  .toggle.on i { left: 20px; }
+  .auth { color: #8e8e93; }
+  .auth.ok { color: #30d158; }
+  .app-refresh { margin-top: 9px; text-align: right; color: #0a84ff; font-size: .72rem; }
+  .app-refresh.hot { animation: blink .9s ease; }
+  @keyframes blink { 50% { opacity: .35; } }
+
+  /* ---------- add-integration dialog mock ---------- */
+  .setup { margin-top: 16px; display: flex; justify-content: center; }
+  .setup-dialog {
+    width: min(560px, 100%);
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 0 14px 34px rgba(16, 36, 50, .10);
+    overflow: hidden;
+  }
+  .setup-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px 6px; }
+  .setup-title { font-weight: 700; font-size: .98rem; }
+  .setup-x { order: -1; color: var(--muted); font-size: 1.15rem; line-height: 1; }
+  .setup-desc { margin: 0; padding: 0 18px 10px; color: var(--muted); font-size: .82rem; }
+  .setup-opt {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    border: 0; background: transparent; text-align: left;
+    font: inherit; font-size: .86rem; color: var(--ink);
+    padding: 10px 18px; cursor: pointer;
+  }
+  .setup-opt:hover { background: #f5f9fc; }
+  .setup-opt .radio {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid #b9c7d2; position: relative; flex: 0 0 auto;
+  }
+  .setup-opt.on .radio { border-color: #0288d1; }
+  .setup-opt.on .radio::after {
+    content: ""; position: absolute; inset: 3px; border-radius: 50%; background: #0288d1;
+  }
+  .setup-form { margin: 6px 18px 0; border-top: 1px solid var(--line); padding: 12px 0 4px; }
+  .field {
+    display: flex; justify-content: space-between; gap: 14px;
+    padding: 7px 10px; margin-bottom: 7px;
+    background: #f4f6f8; border-radius: 8px; font-size: .8rem;
+  }
+  .field label { color: var(--muted); }
+  .field span { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .field.hidden { display: none; }
+  .setup-actions { display: flex; justify-content: flex-end; }
+  .setup-submit {
+    display: inline-block; margin: 4px 0 10px;
+    background: #03a9f4; color: #04202f;
+    font-weight: 700; font-size: .8rem;
+    padding: 7px 18px; border-radius: 999px;
+  }
+  .setup-note {
+    margin: 0 18px 16px; padding: 9px 12px;
+    background: var(--soft); border-radius: 8px;
+    font-size: .78rem; color: #53656f;
+  }
+
+  /* ---------- errors ---------- */
+  .code {
+    display: inline-block;
+    font: 700 .72rem/1 "SFMono-Regular", Consolas, monospace;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--danger-bg);
+    color: var(--danger);
+  }
+  .err-preview { padding: 16px 18px; margin-bottom: 16px; }
+  .err-preview-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: .74rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .err-preview-head .pulse {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #e53935;
+    box-shadow: 0 0 0 0 rgba(229, 57, 53, .45);
+    animation: pulse 1.8s infinite;
+  }
+  .err-preview .code { margin-bottom: 6px; }
+  .err-preview b { display: block; margin-bottom: 3px; font-size: .95rem; }
+  .err-preview p { margin: 0; color: #53656f; font-size: .88rem; }
+  .flip { animation: flipin .35s ease; }
+  @keyframes flipin { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .err-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .err-card {
+    padding: 16px 18px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+  .err-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .err-head h3 { margin: 0; font-size: .95rem; }
+  .err-card .msg { margin: 0; color: #53656f; font-size: .85rem; }
+  .cf-table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+  .cf-table td { padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .cf-table tr:last-child td { border-bottom: 0; }
+  .cf-table td:first-child { width: 190px; font-weight: 600; white-space: nowrap; }
+  .cf-table td.msg { color: #53656f; }
+  .hint-list { display: grid; gap: 8px; }
+  .hint-row { display: flex; gap: 10px; align-items: baseline; font-size: .86rem; color: #53656f; }
+  .hint-row .tag {
+    flex: 0 0 auto;
+    font-size: .66rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--warn);
+    background: var(--warn-bg);
+    border: 1px solid #f0d9a8;
+    border-radius: 6px;
+    padding: 1px 7px;
+  }
+  .note-line { margin: 12px 0 0; color: var(--muted); font-size: .8rem; }
+
+  @media (max-width: 860px) {
+    .toolbar { padding: 10px 14px; }
+    .wrap { padding: 18px 16px 50px; }
+    .toolbar nav { display: none; }
+    .demo { grid-template-columns: 1fr; }
+    .steps, .grid3 { grid-template-columns: 1fr; }
+    .prep { grid-template-columns: 1fr; }
+    .err-grid { grid-template-columns: 1fr; }
+    .release { grid-template-columns: 1fr; }
+    .hero { padding: 30px 24px 26px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001s !important; transition-duration: .001s !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="toolbar">
+  <div class="brand"><span class="dot"></span> Conow Local</div>
+  <div class="lang-switch" role="group" aria-label="Language">
+    <button type="button" data-lang="en" class="active" aria-pressed="true">EN</button>
+    <button type="button" data-lang="zh-Hans" aria-pressed="false">中文</button>
+    <button type="button" data-lang="de" aria-pressed="false">DE</button>
+    <button type="button" data-lang="nl" aria-pressed="false">NL</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <header class="page-head">
+    <p class="eyebrow" data-i18n="heroEyebrow">Conow Local for Home Assistant</p>
+    <h1 data-i18n="pageTitle">Conow Local</h1>
+    <p class="lead" data-i18n="heroLead">A local Modbus RTU/TCP integration that connects CONOW balcony-solar storage devices to Home Assistant.</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" class="active" aria-selected="true" data-tab="version" data-i18n="tabVersion">Version</button>
+    <button type="button" role="tab" aria-selected="false" data-tab="usage" data-i18n="tabUsage">Usage</button>
+    <button type="button" role="tab" aria-selected="false" data-tab="errors" data-i18n="tabErrors">Errors</button>
+  </div>
+
+  <section class="tab-panel active" id="tab-version">
+    <div class="section-head">
+      <h2 data-i18n="diffTitle">Version comparison: v1 and v2</h2>
+      <p data-i18n="vnLead">Integration 2.5.0. The v2 register map was finalized on November 4, 2026; v1.0 was released on July 16, 2026.</p>
+      <p data-i18n="diffLead">Both register maps share a single parser and entity model; only the data differs. For each entry, exactly one map is loaded and polled.</p>
+    </div>
+    <div class="card table-wrap">
+      <table class="diff">
+        <thead>
+          <tr>
+            <th data-i18n="thAspect">Aspect</th>
+            <th>v1</th>
+            <th>v2</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-i18n="rowReleased">Released</td>
+            <td>Jul 16, 2026</td>
+            <td class="v2">Nov 4, 2026</td>
+          </tr>
+          <tr>
+            <td data-i18n="rowMap">Register map</td>
+            <td><code>maps/registers.json</code></td>
+            <td class="v2"><code>maps/panel_registers.json</code></td>
+          </tr>
+          <tr>
+            <td data-i18n="rowSelected">Selected when</td>
+            <td data-i18n="selV1">the probe of 0x274E fails</td>
+            <td class="v2" data-i18n="selV2">0x274E answers (any value)</td>
+          </tr>
+          <tr>
+            <td data-i18n="rowPoll">Polling</td>
+            <td data-i18n="pollV1">5 s per block</td>
+            <td class="v2" data-i18n="pollV2">30 s per block</td>
+          </tr>
+          <tr>
+            <td data-i18n="rowControl">Control location</td>
+            <td data-i18n="ctrlV1">HA device-page entities</td>
+            <td class="v2" data-i18n="ctrlV2">the grouped panel</td>
+          </tr>
+          <tr>
+            <td data-i18n="rowWrite">Write shape</td>
+            <td data-i18n="writeV1">one value; the device page refuses and links to the panel</td>
+            <td class="v2" data-i18n="writeV2">whole group, validated, one atomic FC 0x10 frame</td>
+          </tr>
+          <tr>
+            <td data-i18n="rowReadback">After a write</td>
+            <td data-i18n="rbV1">waits for the next poll</td>
+            <td class="v2" data-i18n="rbV2">re-read immediately</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="quote">
+      “Device-page controls are visible but do not write directly … All writes go through that panel, which sends a whole group at once.”
+      <cite>v2 grouped panel — Writes</cite>
+    </blockquote>
+
+    <div class="section-head" style="margin-top:34px">
+      <h2 data-i18n="sourcesTitle">Sources</h2>
+      <p data-i18n="sourcesLead">Protocol documentation and the project repository.</p>
+    </div>
+    <div class="card sources">
+      <ul>
+        <li><a href="https://github.com/conow-labs/developer-docs/blob/main/modbus/balcony-solar-storage.md" target="_blank" rel="noopener" data-i18n="srcProtocol">Balcony solar storage — Modbus protocol</a></li>
+        <li><a href="https://github.com/conow-labs/home-assistant-local" target="_blank" rel="noopener" data-i18n="srcRepo">Project repository</a></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-usage">
+    <div class="section-head">
+      <h2 data-i18n="usageTitle">How to use the panel</h2>
+      <p data-i18n="usageLead">The procedure covers the complete workflow from device preparation to a confirmed write; demonstration cards play automatically.</p>
+    </div>
+
+    <article class="card use" style="margin-bottom:16px">
+      <div class="use-head">
+        <span class="use-num">1</span>
+        <div>
+          <h3 data-i18n="appStepTitle">Prepare the device in the Conow app</h3>
+          <p data-i18n="appStepText">In the CONOW app, navigate to Devices → target device → Modbus Service. Enable Modbus TCP or Modbus RTU according to the connection in use, and verify Slave ID 0xA0 and port 502. Dynamic Auth Code must display “Verified”; select Refresh if it does not.</p>
+        </div>
+      </div>
+      <div class="app-demo">
+        <div class="phone" aria-hidden="true">
+          <div class="phone-title">Modbus Service</div>
+          <div class="svc-row">
+            <div><b>Modbus RTU</b><small>Top priority</small></div>
+            <span class="toggle" id="app-rtu"><i></i></span>
+          </div>
+          <div class="svc-card">
+            <div class="svc-row">
+              <div><b>Modbus TCP</b><small id="app-tcp-status">Lower priority than RTU</small></div>
+              <span class="toggle on" id="app-tcp"><i></i></span>
+            </div>
+            <div class="svc-line"><span>Slave ID</span><b>0xA0</b></div>
+            <div class="svc-line"><span>IP Address</span><b>192.168.1.50</b></div>
+            <div class="svc-line"><span>Port</span><b>502</b></div>
+            <div class="svc-line"><span>Dynamic Auth Code</span><b class="auth" id="app-auth">Verified</b></div>
+            <div class="app-refresh" id="app-refresh">↻ Refresh</div>
+          </div>
+        </div>
+      </div>
+      <p class="note-line" data-i18n="appCaption">Conow app → Modbus Service (RTU has priority; TCP shows the verification state).</p>
+    </article>
+
+    <article class="card use" style="margin-bottom:16px">
+      <div class="use-head">
+        <span class="use-num">2</span>
+        <div>
+          <h3 data-i18n="setupStepTitle">Add the integration in Home Assistant</h3>
+          <p data-i18n="setupStepText">Navigate to Settings → Devices &amp; services → Add integration → Conow Local, and select the connection type that matches the hardware. The form below lists the corresponding fields and default values. After submission, the entry appears under Devices &amp; services; if the attempt fails, refer to the Errors tab.</p>
+        </div>
+      </div>
+      <div class="setup">
+        <div class="setup-dialog">
+          <div class="setup-head">
+            <span class="setup-x">×</span>
+            <span class="setup-title" data-i18n="setupDialogTitle">Connection type</span>
+          </div>
+          <p class="setup-desc" data-i18n="setupDialogDesc">Select how the device is reached: RS-485 serial, Modbus TCP through an RS-485/Ethernet adapter, or Modbus TCP directly to the all-in-one machine.</p>
+          <button class="setup-opt on" type="button" data-mode="rtu"><span class="radio"></span><span data-i18n="setupRtu">Modbus RTU (serial)</span></button>
+          <button class="setup-opt" type="button" data-mode="tcp"><span class="radio"></span><span data-i18n="setupTcp">Modbus TCP (Ethernet adapter)</span></button>
+          <button class="setup-opt" type="button" data-mode="direct"><span class="radio"></span><span data-i18n="setupDirect">Modbus TCP (direct all-in-one)</span></button>
+          <div class="setup-form">
+            <div class="field"><label data-i18n="fldDeviceName">Device name</label><span>CONOW Energy</span></div>
+            <div class="field" data-field="rtu"><label data-i18n="fldSerialPort">Serial port</label><span>/dev/ttyUSB0</span></div>
+            <div class="field" data-field="rtu"><label data-i18n="fldBaud">Baud rate</label><span>38400</span></div>
+            <div class="field" data-field="net"><label data-i18n="fldHost">Host / IP address</label><span>192.168.1.50</span></div>
+            <div class="field" data-field="net"><label data-i18n="fldTcpPort">TCP port</label><span>502</span></div>
+            <div class="field"><label data-i18n="fldSlave">Slave address</label><span>160</span></div>
+            <div class="field" data-field="direct"><label data-i18n="fldVerify">Verification code</label><span>A1B2C3D4</span></div>
+            <div class="setup-actions"><span class="setup-submit" data-i18n="setupSubmit">Submit</span></div>
+          </div>
+          <p class="setup-note" id="setup-note"></p>
+        </div>
+      </div>
+      <p class="note-line" data-i18n="setupCaption">The fields correspond to the Home Assistant dialog; default values are pre-filled.</p>
+    </article>
+
+    <article class="card use" style="margin-bottom:16px">
+      <div class="use-head">
+        <span class="use-num">3</span>
+        <div>
+          <h3 data-i18n="stepOpenTitle">Open the panel</h3>
+          <p data-i18n="stepOpenText">The panel is accessible from the sidebar or directly via its URL. It loads the map version reported by the active device.</p>
+          <p class="panel-url" data-i18n="panelOpen">Panel URL: <code>/conow-local-panel?device_id=…</code> — also available from the Home Assistant sidebar.</p>
+        </div>
+      </div>
+    </article>
+
+    <div class="section-head">
+      <h2 data-i18n="demosTitle">Interactive demonstration</h2>
+      <p data-i18n="demosLead">The following demonstration cards play automatically and also support manual interaction. Select Replay to restart a card.</p>
+    </div>
+
+    <div class="card">
+      <!-- Demo 1: live readings -->
+      <div class="demo">
+        <div class="demo-copy">
+          <span class="demo-flag"><span class="pulse"></span><span data-i18n="auto">Auto</span></span>
+          <h3 class="demo-step"><span class="use-num">4</span> <span data-i18n="demo1Title">Live readings</span></h3>
+          <p data-i18n="demo1Lead">The panel reads every block of the active map and refreshes the values in place at the polling interval; the layout remains stable.</p>
+        </div>
+        <div class="mock" aria-live="off">
+          <div class="mock-head">
+            <span class="logo">C</span>
+            <b data-i18n="panelTitle">Conow Local</b>
+            <span class="spacer"></span>
+            <span data-i18n="pollLabel">Poll</span>
+            <span data-i18n="pollValue">30 s</span>
+            <span class="refresh">↻ <span data-i18n="panelRefresh">Refresh</span></span>
+          </div>
+          <div class="mock-body">
+            <div class="group">
+              <div class="group-head">
+                <span class="chev">▾</span>
+                <h4 data-i18n="groupRealtime">Real-time Monitoring</h4>
+              </div>
+              <div class="live-row"><span data-i18n="regBatteryPower">Battery Power</span><span class="val" id="v-battery">-820 W</span></div>
+              <div class="live-row"><span data-i18n="regGridPower">Grid Active Power</span><span class="val" id="v-grid">1,240 W</span></div>
+              <div class="live-row"><span data-i18n="regPvPower">PV Total Power</span><span class="val" id="v-pv">2,060 W</span></div>
+              <div class="live-row"><span data-i18n="regSoc">System SoC</span><span class="val" id="v-soc">64 %</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Demo 2: edit + apply -->
+      <div class="demo">
+        <div class="demo-copy">
+          <span class="demo-flag"><span class="pulse"></span><span data-i18n="auto">Auto</span></span>
+          <h3 class="demo-step"><span class="use-num">5</span> <span data-i18n="demo2Title">Group editing and submission</span></h3>
+          <p data-i18n="demo2Lead">After the direction and target power are modified, the values are validated against the device's live limits, contiguous registers are merged, the group is written in a single FC 0x10 frame, and the state is read back immediately.</p>
+          <button type="button" class="replay" id="replay-main" data-i18n="replay">Replay</button>
+        </div>
+        <div class="mock">
+          <div class="mock-head">
+            <span class="logo">C</span>
+            <b data-i18n="panelTitle">Conow Local</b>
+            <span class="spacer"></span>
+            <span data-i18n="pollLabel">Poll</span>
+            <span data-i18n="pollValue">30 s</span>
+          </div>
+          <div class="mock-body">
+            <div class="group" id="force-group">
+              <div class="group-head">
+                <span class="chev">▾</span>
+                <h4 data-i18n="groupForce">Real-time Control</h4>
+                <button type="button" class="apply" id="apply-btn">Apply group</button>
+              </div>
+
+              <div class="row" data-row="dir">
+                <span class="row-label" data-i18n="regDirection">Charge/discharge direction</span>
+                <div class="seg" role="group">
+                  <button type="button" data-dir="1" data-i18n="dirCharge">Charging</button>
+                  <button type="button" data-dir="2" data-i18n="dirDischarge">Discharging</button>
+                  <button type="button" data-dir="3" data-i18n="dirIdle">Idle</button>
+                </div>
+              </div>
+
+              <div class="row" data-row="power">
+                <span class="row-label" data-i18n="regTargetPower">Target charge/discharge power</span>
+                <div class="slider" id="power-slider">
+                  <div class="track"><div class="fill"></div><div class="knob"></div></div>
+                  <span class="slider-value" id="power-value">320 W</span>
+                </div>
+              </div>
+
+              <div class="row" data-row="cutoff">
+                <span class="row-label" data-i18n="regCutoff">Charge/discharge cutoff SoC</span>
+                <div class="slider" id="cutoff-slider">
+                  <div class="track"><div class="fill"></div><div class="knob"></div></div>
+                  <span class="slider-value" id="cutoff-value">20 %</span>
+                </div>
+              </div>
+
+              <div class="row" data-row="duration">
+                <span class="row-label" data-i18n="regDuration">Charge/discharge duration</span>
+                <span class="num" id="duration-value">120 min</span>
+              </div>
+
+              <div class="dialog" id="confirm-dialog" role="dialog" aria-modal="false">
+                <b data-i18n="confirmTitle">Confirm write</b>
+                <p id="confirm-text">Write group “Real-time Control” to the device?</p>
+                <div class="dialog-actions">
+                  <button type="button" class="mini" id="confirm-cancel" data-i18n="actionCancel">Cancel</button>
+                  <button type="button" class="mini primary" id="confirm-ok" data-i18n="actionConfirm">Confirm</button>
+                </div>
+              </div>
+
+              <div class="notice ok" id="demo-notice"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Demo 3: limits -->
+      <div class="demo">
+        <div class="demo-copy">
+          <span class="demo-flag"><span class="pulse"></span><span data-i18n="auto">Auto</span></span>
+          <h3 class="demo-step"><span class="use-num">6</span> <span data-i18n="demo3Title">Value range enforcement</span></h3>
+          <p data-i18n="demo3Lead">Writable registers observe the ranges documented for the device, such as 30–720 min for the control duration. Input outside the permitted range is limited to the nearest boundary and reported.</p>
+          <button type="button" class="replay" id="replay-limit" data-i18n="replay">Replay</button>
+        </div>
+        <div class="mock">
+          <div class="mock-head">
+            <span class="logo">C</span>
+            <b data-i18n="panelTitle">Conow Local</b>
+            <span class="spacer"></span>
+            <span data-i18n="pollLabel">Poll</span>
+            <span data-i18n="pollValue">30 s</span>
+          </div>
+          <div class="mock-body">
+            <div class="group">
+              <div class="group-head">
+                <span class="chev">▾</span>
+                <h4 data-i18n="groupForce">Real-time Control</h4>
+              </div>
+              <div class="row" data-row="duration2">
+                <span class="row-label" data-i18n="regDuration">Charge/discharge duration</span>
+                <span class="num" id="duration-value-2">120 min</span>
+              </div>
+              <div class="row">
+                <span class="row-label" data-i18n="durationRange">Allowed range</span>
+                <span class="num" style="border:0;background:transparent;color:var(--muted)">30–720 min</span>
+              </div>
+              <div class="notice warn" id="clamp-notice"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <div class="section-head" id="write" style="margin-top:34px">
+    <h2 class="demo-step"><span class="use-num">7</span> <span data-i18n="writePathTitle">Write sequence</span></h2>
+    <p data-i18n="writePathLead">Every submission follows the same sequence.</p>
+  </div>
+    <div class="steps">
+      <div class="step" data-step="0">
+        <span class="n">1</span>
+        <h3 data-i18n="step1Title">Validate</h3>
+        <p data-i18n="step1Text">Each writable register is validated against its live limits and dependencies.</p>
+      </div>
+      <div class="step" data-step="1">
+        <span class="n">2</span>
+        <h3 data-i18n="step2Title">Merge</h3>
+        <p data-i18n="step2Text">Contiguous registers are merged into a single atomic FC 0x10 frame; groups with gaps fall back to consecutive FC 0x06 writes.</p>
+      </div>
+      <div class="step" data-step="2">
+        <span class="n">3</span>
+        <h3 data-i18n="step3Title">Read back</h3>
+        <p data-i18n="step3Text">The device state is read back immediately; the panel does not wait for the next polling cycle.</p>
+      </div>
+    </div>
+    <div class="frame">
+      <span class="chip">FC 0x10</span>
+      <span>Slave 0xA0</span>
+      <span>Registers 10100–10107</span>
+      <span>→ one frame</span>
+      <span>→ read back</span>
+    </div>
+
+    <div class="section-head" style="margin-top:34px">
+      <h2 data-i18n="prepTitle">Prerequisites</h2>
+      <p data-i18n="prepLead">Prerequisites for a working panel.</p>
+    </div>
+    <div class="prep">
+      <div class="prep-item"><span class="tick">✓</span><span data-i18n="prep1">Turn on “Enable External Control / ModBus RTU” in the Conow app (RTU and adapter links).</span></div>
+      <div class="prep-item"><span class="tick">✓</span><span data-i18n="prep2">Direct TCP needs the 8-character hex verification code shown by the machine.</span></div>
+      <div class="prep-item"><span class="tick">✓</span><span data-i18n="prep3">Slave 160 (0xA0); RTU serial 38400 8N1; TCP port 502.</span></div>
+      <div class="prep-item"><span class="tick">✓</span><span data-i18n="prep4">Only one client may hold the device at a time.</span></div>
+      <div class="prep-item"><span class="tick">✓</span><span data-i18n="prep5">Reload the integration after changing connection settings.</span></div>
+      <div class="prep-item"><span class="tick">✓</span><span data-i18n="prep6">The panel is in the sidebar and at <code>/conow-local-panel</code>.</span></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-errors">
+    <div class="section-head">
+      <h2 data-i18n="errorsTitle">Error scenarios and messages</h2>
+      <p data-i18n="errorsLead">The integration reports the specific cause rather than a generic failure. The following messages correspond to the user interface.</p>
+    </div>
+
+    <div class="card err-preview" id="err-preview">
+      <div class="err-preview-head"><span class="pulse"></span><span data-i18n="errPreview">Live preview</span></div>
+      <span class="code" id="err-preview-code">EX 4</span>
+      <b id="err-preview-title">Another client holds the device</b>
+      <p id="err-preview-text">The device is already connected by another client (MAC address changed); Modbus I/O has stopped. Close the other connection (Conow app, RS-485 adapter or another Home Assistant instance), then reload the integration or restart Home Assistant.</p>
+    </div>
+
+    <div class="err-grid">
+      <article class="err-card">
+        <div class="err-head"><span class="code">EX 4</span><h3 data-i18n="err4Title">Another client holds the device</h3></div>
+        <p class="msg" data-i18n="errMsg4">The device is already connected by another client (MAC address changed); Modbus I/O has stopped. Close the other connection (Conow app, RS-485 adapter or another Home Assistant instance), then reload the integration or restart Home Assistant.</p>
+      </article>
+      <article class="err-card">
+        <div class="err-head"><span class="code">EX 5</span><h3 data-i18n="err5Title">The verification code is stale</h3></div>
+        <p class="msg" data-i18n="errMsg5">The device asks for a manual refresh: the verification code is no longer valid and Modbus I/O has stopped. Update it in Settings → Devices &amp; services → Conow Local → Configure.</p>
+      </article>
+      <article class="err-card">
+        <div class="err-head"><span class="code">EX 6</span><h3 data-i18n="err6Title">RTU external control is off</h3></div>
+        <p class="msg" data-i18n="errMsg6">The device's RTU external-control switch is off. Open the Conow app, go to the device panel and turn on “Enable External Control / ModBus RTU”, then reload the integration; polling has stopped.</p>
+      </article>
+      <article class="err-card">
+        <div class="err-head"><h3 data-i18n="errRejectedTitle">The device refused the write</h3></div>
+        <p class="msg" data-i18n="errMsgRejected">{group}: the device refused the write ({error}). Check the values and try again.</p>
+      </article>
+      <article class="err-card">
+        <div class="err-head"><h3 data-i18n="errUnreadableTitle">No data could be read</h3></div>
+        <p class="msg" data-i18n="errMsgUnreadable">No data could be read from the device. Check that it is online and that the serial or network connection is working.</p>
+      </article>
+      <article class="err-card">
+        <div class="err-head"><h3 data-i18n="errMismatchTitle">Firmware below v2</h3></div>
+        <p class="msg" data-i18n="errMsgMismatch">Device firmware {firmware} is below {minimum}, which is required for the finalized register map (panel_registers.json); entities are read from registers.json (v1) and the grouped panel is unavailable.</p>
+      </article>
+    </div>
+
+    <div class="section-head" style="margin-top:34px">
+      <h2 data-i18n="cfTitle">When adding or reconfiguring</h2>
+      <p data-i18n="cfLead">Messages displayed in the Home Assistant dialog.</p>
+    </div>
+    <div class="card table-wrap">
+      <table class="cf-table">
+        <tbody>
+          <tr><td data-i18n="cfCannotConnectLabel">Cannot connect</td><td class="msg" data-i18n="cfCannotConnectMsg">Unable to connect over Modbus. Check the connection, Enable External Control / ModBus RTU, and slave address.</td></tr>
+          <tr><td data-i18n="cfInvalidCodeLabel">Invalid verification code</td><td class="msg" data-i18n="cfInvalidCodeMsg">Verification code must be exactly 8 hexadecimal characters.</td></tr>
+          <tr><td data-i18n="cfTcpFailedLabel">TCP connection failed</td><td class="msg" data-i18n="cfTcpFailedMsg">Cannot open a TCP connection. Check that the IP address is correct, the TCP port is open, and Home Assistant is on the same network as the device.</td></tr>
+          <tr><td data-i18n="cfVerificationFailedLabel">Verification failed</td><td class="msg" data-i18n="cfVerificationFailedMsg">The device rejected the verification code. Check the 8-character code shown on the machine and try again.</td></tr>
+          <tr><td data-i18n="cfDeviceBusyLabel">Device busy</td><td class="msg" data-i18n="cfDeviceBusyMsg">The device is already connected by another client (MAC address changed). Close the other connection (Conow app, RS-485 adapter or another Home Assistant instance) and try again.</td></tr>
+          <tr><td data-i18n="cfVerificationRequiredLabel">Verification required</td><td class="msg" data-i18n="cfVerificationRequiredMsg">The device asks for a manual refresh: the verification code is no longer valid. Read the current 8-character code from the machine, then update it under Configure.</td></tr>
+          <tr><td data-i18n="cfExternalControlLabel">External control disabled</td><td class="msg" data-i18n="cfExternalControlMsg">The device's RTU external-control switch is off. Turn on “Enable External Control / ModBus RTU” in the device panel of the Conow app, then try again.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-head" style="margin-top:34px">
+      <h2 data-i18n="hintsTitle">Input validation before submission</h2>
+      <p data-i18n="hintsLead">Displayed below the group while a value is invalid; no data is sent.</p>
+    </div>
+    <div class="card" style="padding:16px 18px">
+      <div class="hint-list">
+        <div class="hint-row"><span class="tag">range</span><span data-i18n="hintRange">Outside the allowed range, adjust: {codes}</span></div>
+        <div class="hint-row"><span class="tag">empty</span><span data-i18n="hintIncomplete">Fill in every writable field</span></div>
+        <div class="hint-row"><span class="tag">same</span><span data-i18n="hintUnchanged">No changes</span></div>
+        <div class="hint-row"><span class="tag">time</span><span data-i18n="hintInvalidTime">Invalid time readings, set them again: {codes}</span></div>
+        <div class="hint-row"><span class="tag">order</span><span data-i18n="hintTimeOrder">Invalid time slots (start before end, no overlaps): {slots}</span></div>
+        <div class="hint-row"><span class="tag">clamp</span><span data-i18n="hintClamped">{name} limited to {value} ({min}–{max})</span></div>
+      </div>
+      <p class="note-line" data-i18n="placeholdersNote">Values in braces are substituted at runtime.</p>
+    </div>
+  </section>
+
+
+  <p class="footer" data-i18n="footerText">README.html · Conow Local v2.0</p>
+</main>
+
+<script>
+const I18N = {
+  en: {
+    navOverview: "Overview", navDemos: "Demos", navWrite: "Write path",
+    navPrepare: "Before you start", navSources: "Sources",
+    heroEyebrow: "Conow Local for Home Assistant",
+    pageTitle: "Conow Local",
+    heroLead: "A local Modbus RTU/TCP integration that connects CONOW balcony-solar storage devices to Home Assistant.",
+    badgeMap: "v2 map", badgePoll: "30 s polling", badgeWrite: "Atomic group writes",
+    badgeLangs: "EN · 中文 · DE · NL",
+    diffTitle: "Version comparison: v1 and v2",
+    diffLead: "Both register maps share a single parser and entity model; only the data differs. For each entry, exactly one map is loaded and polled.",
+    thAspect: "Aspect", rowReleased: "Released", rowMap: "Register map", rowSelected: "Selected when",
+    rowPoll: "Polling", rowControl: "Control location", rowWrite: "Write method",
+    rowReadback: "After a write",
+    selV1: "the probe of 0x274E fails", selV2: "0x274E answers (any value)",
+    pollV1: "5 s per block", pollV2: "30 s per block",
+    ctrlV1: "Home Assistant device entities", ctrlV2: "the grouped panel",
+    writeV1: "one value; the device page refuses and links to the panel",
+    writeV2: "whole group, validated, one atomic FC 0x10 frame",
+    rbV1: "waits for the next poll", rbV2: "re-read immediately",
+    demosTitle: "Interactive demonstration",
+    demosLead: "The following demonstration cards play automatically and also support manual interaction. Select Replay to restart a card.",
+    panelOpen: "Panel URL: <code>/conow-local-panel?device_id=…</code> (also available from the Home Assistant sidebar).",
+    auto: "Auto", replay: "Replay",
+    demo1Title: "Live readings",
+    demo1Lead: "The panel reads every block of the active map and refreshes the values in place at the polling interval; the layout remains stable.",
+    demo2Title: "Group editing and submission",
+    demo2Lead: "After the direction and target power are modified, the values are validated against the device's live limits, contiguous registers are merged, the group is written in a single FC 0x10 frame, and the state is read back immediately.",
+    demo3Title: "Value range enforcement",
+    demo3Lead: "Writable registers observe the ranges documented for the device, such as 30–720 min for the control duration. Input outside the permitted range is limited to the nearest boundary and reported.",
+    panelTitle: "Conow Local", panelRefresh: "Refresh",
+    pollLabel: "Poll", pollValue: "30 s",
+    groupRealtime: "Real-time Monitoring", groupForce: "Real-time Control",
+    regBatteryPower: "Battery Power", regGridPower: "Grid Active Power",
+    regPvPower: "PV Total Power", regSoc: "System SoC",
+    regDirection: "Charge/discharge direction",
+    regTargetPower: "Target charge/discharge power",
+    regCutoff: "Charge/discharge cutoff SoC",
+    regDuration: "Charge/discharge duration",
+    durationRange: "Allowed range",
+    dirCharge: "Charging", dirDischarge: "Discharging", dirIdle: "Idle",
+    actionApply: "Apply group", actionApplying: "Sending…",
+    actionCancel: "Cancel", actionConfirm: "Confirm",
+    confirmTitle: "Confirm write",
+    confirmText: "Write group “{group}” to the device?",
+    noticeSent: "{group}: sent",
+    noticeClamped: "{name} limited to {value} ({min}–{max})",
+    writePathTitle: "Write sequence",
+    writePathLead: "Every submission follows the same sequence.",
+    step1Title: "Validate",
+    step1Text: "Each writable register is validated against its live limits and dependencies.",
+    step2Title: "Merge",
+    step2Text: "Contiguous registers are merged into a single atomic FC 0x10 frame; groups with gaps fall back to consecutive FC 0x06 writes.",
+    step3Title: "Read back",
+    step3Text: "The device state is read back immediately; the panel does not wait for the next polling cycle.",
+    refuseTitle: "When the device refuses",
+    refuseLead: "The private exception codes stop Modbus I/O and name the cause in the panel.",
+    code4Title: "Another client holds the device",
+    code4Text: "Close the Conow app, the adapter or the other Home Assistant instance, then reload the integration.",
+    code5Title: "Stale verification code",
+    code5Text: "The machine asks for a manual refresh; update the code under Configure.",
+    code6Title: "RTU external control is off",
+    code6Text: "RTU links only: turn on “Enable External Control / ModBus RTU” in the Conow app, then reload the integration.",
+    prepTitle: "Prerequisites",
+    prepLead: "Prerequisites for operating the panel:",
+    prep1: "Enable “Enable External Control / ModBus RTU” in the CONOW app (RTU and adapter connections).",
+    prep2: "Direct TCP requires the 8-character hexadecimal verification code displayed by the machine.",
+    prep3: "Slave address 160 (0xA0); RTU serial parameters 38400 8N1; TCP port 502.",
+    prep4: "Only one client may connect to the device at a time.",
+    prep5: "Reload the integration after changing connection settings.",
+    prep6: "The panel is available from the sidebar and at <code>/conow-local-panel</code>.",
+    sourcesTitle: "Sources",
+    sourcesLead: "References: the CONOW Modbus protocol documentation and the project repository.",
+    srcProtocol: "Balcony solar storage — Modbus protocol",
+    srcRepo: "Project repository",
+    tabVersion: "Version", tabUsage: "Usage", tabErrors: "Errors",
+    ctaUsage: "See the steps", ctaErrors: "Error messages",
+    vnTitle: "Version & release notes",
+    vnLead: "Integration 2.5.0. The v2 register map was finalized on November 4, 2026; v1.0 was released on July 16, 2026.",
+    vnR1T: "Docs & panel polish",
+    vnR1B: "This guide; register tooltips now show only the address, data type and the device's English description.",
+    vnR2T: "Control duration & RTU guard",
+    vnR2B: "Charge/discharge duration is limited to 30–720 min; exception 6 on an RTU link stops polling and points to the app switch.",
+    vnR3T: "Safer verification & refusals",
+    vnR3B: "The verification code is written only from the config flow; device-level refusals (4/5) stop all Modbus I/O until fixed.",
+    vnR4T: "Clock & error hints",
+    vnR4B: "Device clock register with its own calibration group; exception codes are explained in plain language.",
+    vnR5T: "v2.0 register map",
+    vnR5B: "panel_registers.json finalized; the probe of 0x274E selects v2 over v1.",
+    usageTitle: "Operating procedure",
+    usageLead: "The procedure covers the complete workflow from device preparation to a confirmed write; demonstration cards play automatically.",
+    appStepTitle: "Prepare the device in the CONOW app",
+    appStepText: "In the CONOW app, navigate to Devices → target device → Modbus Service. Enable Modbus TCP or Modbus RTU according to the connection in use, and verify Slave ID 0xA0 and port 502. Dynamic Auth Code must display “Verified”; select Refresh if it does not.",
+    appCaption: "CONOW app → Modbus Service (RTU takes priority; TCP displays the verification state).",
+    setupStepTitle: "Add the integration in Home Assistant",
+    setupStepText: "Navigate to Settings → Devices & services → Add integration → Conow Local, and select the connection type that matches the hardware. The form below lists the corresponding fields and default values. After submission, the entry appears under Devices & services; if the attempt fails, refer to the Errors tab.",
+    setupDialogTitle: "Connection type",
+    setupDialogDesc: "Select how the device is reached: RS-485 serial, Modbus TCP through an RS-485/Ethernet adapter, or Modbus TCP directly to the all-in-one machine.",
+    setupRtu: "Modbus RTU (serial)",
+    setupTcp: "Modbus TCP (Ethernet adapter)",
+    setupDirect: "Modbus TCP (direct all-in-one)",
+    fldDeviceName: "Device name",
+    fldSerialPort: "Serial port",
+    fldBaud: "Baud rate",
+    fldHost: "Host / IP address",
+    fldTcpPort: "TCP port",
+    fldSlave: "Slave address",
+    fldVerify: "Verification code",
+    setupSubmit: "Submit",
+    noteRtu: "Enable “Enable External Control / ModBus RTU” in the CONOW app before continuing. Defaults: 38400 8N1, slave address 0xA0.",
+    noteTcp: "The adapter converts Modbus TCP to RTU; no changes are required on the device. Defaults: port 502, slave address 0xA0.",
+    noteDirect: "The 8-character hexadecimal code is written to registers 0x2701–0x2702; the entry is created only after the device confirms it.",
+    setupCaption: "The fields correspond to the Home Assistant dialog; default values are pre-filled.",
+    stepOpenTitle: "Open the panel",
+    stepOpenText: "The panel is accessible from the sidebar or directly via its URL. It loads the map version reported by the active device.",
+    errorsTitle: "Error scenarios and messages",
+    errorsLead: "The integration reports the specific cause rather than a generic failure. The following messages correspond to the user interface.",
+    errPreview: "Live preview",
+    err4Title: "Another client holds the device",
+    errMsg4: "The device is already connected by another client (MAC address changed); Modbus I/O has stopped. Close the other connection (Conow app, RS-485 adapter or another Home Assistant instance), then reload the integration or restart Home Assistant.",
+    err5Title: "The verification code is stale",
+    errMsg5: "The device asks for a manual refresh: the verification code is no longer valid and Modbus I/O has stopped. Update it in Settings → Devices & services → Conow Local → Configure.",
+    err6Title: "RTU external control is off",
+    errMsg6: "The device's RTU external-control switch is off. Open the Conow app, go to the device panel and turn on “Enable External Control / ModBus RTU”, then reload the integration; polling has stopped.",
+    errRejectedTitle: "The device refused the write",
+    errMsgRejected: "{group}: the device refused the write ({error}). Check the values and try again.",
+    errUnreadableTitle: "No data could be read",
+    errMsgUnreadable: "No data could be read from the device. Check that it is online and that the serial or network connection is working.",
+    errMismatchTitle: "Firmware below v2",
+    errMsgMismatch: "Device firmware {firmware} is below {minimum}, which is required for the finalized register map (panel_registers.json); entities are read from registers.json (v1) and the grouped panel is unavailable.",
+    cfTitle: "When adding or reconfiguring",
+    cfLead: "Messages displayed in the Home Assistant dialog.",
+    cfCannotConnectLabel: "Cannot connect",
+    cfCannotConnectMsg: "Unable to connect over Modbus. Check the connection, Enable External Control / ModBus RTU, and slave address.",
+    cfInvalidCodeLabel: "Invalid verification code",
+    cfInvalidCodeMsg: "Verification code must be exactly 8 hexadecimal characters.",
+    cfTcpFailedLabel: "TCP connection failed",
+    cfTcpFailedMsg: "Cannot open a TCP connection. Check that the IP address is correct, the TCP port is open, and Home Assistant is on the same network as the device.",
+    cfVerificationFailedLabel: "Verification failed",
+    cfVerificationFailedMsg: "The device rejected the verification code. Check the 8-character code shown on the machine and try again.",
+    cfDeviceBusyLabel: "Device busy",
+    cfDeviceBusyMsg: "The device is already connected by another client (MAC address changed). Close the other connection (Conow app, RS-485 adapter or another Home Assistant instance) and try again.",
+    cfVerificationRequiredLabel: "Verification required",
+    cfVerificationRequiredMsg: "The device asks for a manual refresh: the verification code is no longer valid. Read the current 8-character code from the machine, then update it under Configure.",
+    cfExternalControlLabel: "External control disabled",
+    cfExternalControlMsg: "The device's RTU external-control switch is off. Turn on “Enable External Control / ModBus RTU” in the device panel of the Conow app, then try again.",
+    hintsTitle: "Input validation before submission",
+    hintsLead: "Displayed below the group while a value is invalid; no data is sent.",
+    hintRange: "Outside the allowed range, adjust: {codes}",
+    hintIncomplete: "Fill in every writable field",
+    hintUnchanged: "No changes",
+    hintInvalidTime: "Invalid time readings, set them again: {codes}",
+    hintTimeOrder: "Invalid time slots (start before end, no overlaps): {slots}",
+    hintClamped: "{name} limited to {value} ({min}–{max})",
+    placeholdersNote: "Values in braces are substituted at runtime.",
+    footerText: "README.html · Conow Local v2.0"
+  },
+  "zh-Hans": {
+    navOverview: "概览", navDemos: "动图演示", navWrite: "写入流程",
+    navPrepare: "使用前", navSources: "来源",
+    heroEyebrow: "Conow Local · Home Assistant",
+    pageTitle: "Conow Local",
+    heroLead: "面向 CONOW 阳台储能设备的本地 Modbus RTU / TCP 集成，可直接接入 Home Assistant。",
+    badgeMap: "v2 映射表", badgePoll: "30 秒轮询", badgeWrite: "整组原子写入",
+    badgeLangs: "中 · EN · DE · NL",
+    diffTitle: "v1 与 v2 版本对比",
+    diffLead: "两张寄存器映射表共用同一套解析器与实体模型，仅数据不同。每个集成条目仅加载并轮询其中一张映射表。",
+    thAspect: "项目", rowReleased: "发布日期", rowMap: "映射文件", rowSelected: "选用条件",
+    rowPoll: "轮询间隔", rowControl: "控制入口", rowWrite: "写入方式",
+    rowReadback: "写入后",
+    selV1: "0x274E 探测失败", selV2: "0x274E 有任何响应",
+    pollV1: "每块 5 秒", pollV2: "每块 30 秒",
+    ctrlV1: "HA 设备页实体", ctrlV2: "分组面板",
+    writeV1: "单值写入；设备页会拒绝并跳转到面板",
+    writeV2: "整组校验后，一帧原子 FC 0x10 写入",
+    rbV1: "等待下一次轮询", rbV2: "写完立即回读",
+    demosTitle: "交互演示",
+    demosLead: "以下演示卡片自动播放，同时支持手动操作；点击「重新播放」可重新开始演示。",
+    panelOpen: "面板地址：<code>/conow-local-panel?device_id=…</code>（亦可从 Home Assistant 侧边栏进入）。",
+    auto: "自动播放", replay: "重新播放",
+    demo1Title: "实时读数",
+    demo1Lead: "面板按轮询间隔读取当前映射表的全部数据块，并原地刷新数值；布局保持稳定。",
+    demo2Title: "分组编辑与下发",
+    demo2Lead: "调整充放电方向与目标功率后下发；数值依据设备实时上限进行校验，连续寄存器合并后以单帧 FC 0x10 写入，并立即回读设备状态。",
+    demo3Title: "数值范围约束",
+    demo3Lead: "可写寄存器遵循设备文档规定的取值范围，例如充放电控制时长为 30–720 分钟；超出范围的输入将被限制至边界值并给出提示。",
+    panelTitle: "Conow Local", panelRefresh: "刷新",
+    pollLabel: "轮询", pollValue: "30 秒",
+    groupRealtime: "实时监控数据", groupForce: "实时控制",
+    regBatteryPower: "电池功率", regGridPower: "电网有功功率",
+    regPvPower: "PV 总功率", regSoc: "系统当前 SoC",
+    regDirection: "充放电方向",
+    regTargetPower: "目标充放电功率",
+    regCutoff: "充放电截止 SoC",
+    regDuration: "充放电控制时长",
+    durationRange: "允许范围",
+    dirCharge: "充电", dirDischarge: "放电", dirIdle: "空闲",
+    actionApply: "下发该组", actionApplying: "下发中…",
+    actionCancel: "取消", actionConfirm: "确认",
+    confirmTitle: "确认写入",
+    confirmText: "将分组“{group}”写入设备？",
+    noticeSent: "{group}：已下发",
+    noticeClamped: "{name} 已限制为 {value}（{min}–{max}）",
+    writePathTitle: "写入流程",
+    writePathLead: "每次下发均遵循相同流程。",
+    step1Title: "校验",
+    step1Text: "每个可写寄存器均依据实时上限与联动条件进行校验。",
+    step2Title: "合并",
+    step2Text: "连续寄存器合并为单个原子 FC 0x10 帧；存在间隔的分组则回退为连续的 FC 0x06 写入。",
+    step3Title: "回读",
+    step3Text: "写入后立即回读设备状态，无需等待下一次轮询。",
+    refuseTitle: "设备拒绝写入时",
+    refuseLead: "私有异常码会停止 Modbus 通信，并在面板里说明原因。",
+    code4Title: "设备被其他客户端占用",
+    code4Text: "关闭 Conow App、适配器或其他 Home Assistant 实例的连接，然后重新加载集成。",
+    code5Title: "验证码失效",
+    code5Text: "设备要求手动刷新，请在「配置」里更新验证码。",
+    code6Title: "RTU 外部控制未开启",
+    code6Text: "仅 RTU：在 Conow App 中打开「启用外部控制 / ModBus RTU」，然后重新加载集成。",
+    prepTitle: "前置条件",
+    prepLead: "运行面板所需的前置条件：",
+    prep1: "在 CONOW App 中启用「启用外部控制 / ModBus RTU」（RTU 与适配器连接均需启用）。",
+    prep2: "直连 TCP 需使用一体机显示的 8 位十六进制验证码。",
+    prep3: "从站地址 160（0xA0）；RTU 串口参数 38400 8N1；TCP 端口 502。",
+    prep4: "同一时间仅允许一个客户端连接设备。",
+    prep5: "修改连接参数后需重新加载集成。",
+    prep6: "面板位于侧边栏，亦可访问 <code>/conow-local-panel</code>。",
+    sourcesTitle: "来源",
+    sourcesLead: "参考资料：CONOW Modbus 协议文档与项目仓库。",
+    srcProtocol: "阳台储能 — Modbus 协议文档",
+    srcRepo: "项目仓库",
+    tabVersion: "版本更新", tabUsage: "操作步骤", tabErrors: "错误提示",
+    ctaUsage: "查看操作步骤", ctaErrors: "查看错误提示",
+    vnTitle: "版本更新与内容",
+    vnLead: "集成版本 2.5.0。v2 寄存器映射于 2026 年 11 月 4 日定稿；v1.0 于 2026 年 7 月 16 日发布。",
+    vnR1T: "文档与面板优化",
+    vnR1B: "新增本说明页；寄存器 tooltip 仅显示地址、数据类型和设备的英文说明。",
+    vnR2T: "控制时长与 RTU 保护",
+    vnR2B: "充放电控制时长限制为 30–720 分钟；RTU 连接收到异常码 6 时停止轮询，并提示去 App 打开外部控制开关。",
+    vnR3T: "更安全的验证码与拒绝处理",
+    vnR3B: "验证码只在配置流程中写入；设备级拒绝（4/5）会停止所有 Modbus 读写，直到用户修复。",
+    vnR4T: "设备时钟与错误说明",
+    vnR4B: "新增设备时钟寄存器及独立校准分组；私有异常码会转成易懂的提示。",
+    vnR5T: "v2.0 寄存器映射",
+    vnR5B: "panel_registers.json 定稿；通过 0x274E 的探测结果在 v2 与 v1 之间选择。",
+    usageTitle: "操作流程",
+    usageLead: "以下流程涵盖从设备准备到写入确认的完整步骤；演示卡片自动播放。",
+    appStepTitle: "在 CONOW App 中准备设备",
+    appStepText: "在 CONOW App 中依次进入「设备」→ 目标设备 →「Modbus Service」，根据实际连接方式启用 Modbus TCP 或 Modbus RTU，并确认从站地址为 0xA0、端口为 502。Dynamic Auth Code 应显示 Verified，否则请点击 Refresh。",
+    appCaption: "CONOW App → Modbus Service（RTU 优先；TCP 显示验证状态）。",
+    setupStepTitle: "在 Home Assistant 中添加集成",
+    setupStepText: "依次进入「设置 → 设备与服务 → 添加集成 → Conow Local」，并根据硬件选择连接方式。下方表单列出相应字段与默认值。提交成功后，条目将出现在「设备与服务」中；如失败，请参阅「错误提示」。",
+    setupDialogTitle: "连接方式",
+    setupDialogDesc: "选择设备的连接方式：RS-485 串口、通过 485 转以太网适配器的 Modbus TCP，或直连一体机自身的 Modbus TCP。",
+    setupRtu: "Modbus RTU（串口）",
+    setupTcp: "Modbus TCP（以太网适配器）",
+    setupDirect: "Modbus TCP（直连一体机）",
+    fldDeviceName: "设备名称",
+    fldSerialPort: "串口",
+    fldBaud: "波特率",
+    fldHost: "主机 / IP 地址",
+    fldTcpPort: "TCP 端口",
+    fldSlave: "从站地址",
+    fldVerify: "验证码",
+    setupSubmit: "提交",
+    noteRtu: "请先在 CONOW App 中启用「启用外部控制 / ModBus RTU」。默认参数为 38400 8N1，从站地址 0xA0。",
+    noteTcp: "适配器负责将 Modbus TCP 转换为 RTU，设备端无需任何改动。默认端口 502，从站地址 0xA0。",
+    noteDirect: "8 位十六进制验证码将写入保持寄存器 0x2701–0x2702，仅在设备确认后创建集成条目。",
+    setupCaption: "字段与 Home Assistant 添加集成对话框一致，默认值已预填。",
+    stepOpenTitle: "打开面板",
+    stepOpenText: "可通过侧边栏或面板地址进入；面板按当前设备上报的映射版本加载数据。",
+    errorsTitle: "错误场景与提示信息",
+    errorsLead: "集成会明确说明具体原因，而非仅提示通用失败。以下为界面实际显示的信息。",
+    errPreview: "实时预览",
+    err4Title: "设备被其他客户端占用",
+    errMsg4: "设备已被其他客户端连接（MAC 地址已改变），集成已停止读写。请断开 Conow App、485 适配器或其他 Home Assistant 实例，然后重新加载集成或重启 Home Assistant。",
+    err5Title: "验证码失效",
+    errMsg5: "设备要求手动刷新，验证码已失效，集成已停止读写。请在「设置 → 设备与服务 → Conow Local → 配置」中更新验证码。",
+    err6Title: "RTU 外部控制未开启",
+    errMsg6: "设备的 RTU 外部控制开关未开启，轮询已停止。请在 Conow App 的设备面板中打开「启用外部控制 / ModBus RTU」开关，然后重新加载集成。",
+    errRejectedTitle: "设备拒绝写入",
+    errMsgRejected: "{group}：设备拒绝了本次写入（{error}），请检查数值后重试。",
+    errUnreadableTitle: "读不到设备数据",
+    errMsgUnreadable: "读取不到设备数据。请检查设备是否在线、串口或网络连接是否正常。",
+    errMismatchTitle: "固件低于 v2",
+    errMsgMismatch: "设备固件版本 {firmware}，低于启用定稿寄存器映射（panel_registers.json）所需的 {minimum}；已按 registers.json（v1）读取实体，分组面板不可用。",
+    cfTitle: "添加或修改连接时",
+    cfLead: "Home Assistant 对话框中显示的错误信息。",
+    cfCannotConnectLabel: "无法连接",
+    cfCannotConnectMsg: "无法通过 Modbus 连接，请检查连接方式、是否开启「启用外部控制 / ModBus RTU」及从站地址。",
+    cfInvalidCodeLabel: "验证码格式错误",
+    cfInvalidCodeMsg: "验证码必须是 8 位十六进制字符。",
+    cfTcpFailedLabel: "TCP 连接失败",
+    cfTcpFailedMsg: "无法建立 TCP 连接。请检查 IP 地址是否正确、TCP 端口是否开放，以及 Home Assistant 是否与设备在同一网络。",
+    cfVerificationFailedLabel: "验证失败",
+    cfVerificationFailedMsg: "设备校验未通过，请核对一体机上显示的 8 位验证码后重试。",
+    cfDeviceBusyLabel: "设备占用",
+    cfDeviceBusyMsg: "设备已被其他客户端连接（MAC 地址已改变），请断开 Conow App、485 适配器或其他 Home Assistant 实例后重试。",
+    cfVerificationRequiredLabel: "需要刷新验证码",
+    cfVerificationRequiredMsg: "设备要求手动刷新，验证码已失效，请读取一体机上当前显示的 8 位验证码并在「配置」中更新。",
+    cfExternalControlLabel: "外部控制未开启",
+    cfExternalControlMsg: "设备的 RTU 外部控制开关未开启，请在 Conow App 的设备面板中打开「启用外部控制 / ModBus RTU」后重试。",
+    hintsTitle: "下发前的输入校验",
+    hintsLead: "当数值无效时显示于分组下方；此时不会发送任何数据。",
+    hintRange: "超出允许范围，请调整：{codes}",
+    hintIncomplete: "请填写完整所有可写字段",
+    hintUnchanged: "无改动",
+    hintInvalidTime: "时间读数非法，请重新设置：{codes}",
+    hintTimeOrder: "时段设置不合理（开始须早于结束，且时段之间不能交叉）：{slots}",
+    hintClamped: "{name} 已限制为 {value}（{min}–{max}）",
+    placeholdersNote: "花括号中的占位符将在运行时替换。",
+    footerText: "README.html · Conow Local v2.0"
+  },
+  de: {
+    navOverview: "Überblick", navDemos: "Demos", navWrite: "Schreibpfad",
+    navPrepare: "Vorbereitung", navSources: "Quellen",
+    heroEyebrow: "Conow Local für Home Assistant",
+    pageTitle: "Conow Local",
+    heroLead: "Lokale Modbus-RTU/TCP-Integration für CONOW-Balkonspeicher mit Anbindung an Home Assistant.",
+    badgeMap: "v2-Tabelle", badgePoll: "30-s-Polling", badgeWrite: "Atomare Gruppen-Writes",
+    badgeLangs: "EN · 中文 · DE · NL",
+    diffTitle: "Versionsvergleich v1 und v2",
+    diffLead: "Beide Registertabellen verwenden denselben Parser und dasselbe Entitätsmodell; sie unterscheiden sich ausschließlich in den Daten. Pro Eintrag wird genau eine Tabelle geladen und gepollt.",
+    thAspect: "Punkt", rowReleased: "Veröffentlicht", rowMap: "Registertabelle", rowSelected: "Auswahl",
+    rowPoll: "Poll-Intervall", rowControl: "Steuerung", rowWrite: "Schreibweise",
+    rowReadback: "Nach dem Schreiben",
+    selV1: "die Prüfung von 0x274E schlägt fehl", selV2: "0x274E antwortet (beliebiger Wert)",
+    pollV1: "5 s pro Block", pollV2: "30 s pro Block",
+    ctrlV1: "Entities der Geräteseite", ctrlV2: "das gruppierte Panel",
+    writeV1: "ein Wert; die Geräteseite verweigert und verweist auf das Panel",
+    writeV2: "ganze Gruppe, validiert, ein atomarer FC-0x10-Frame",
+    rbV1: "wartet auf den nächsten Poll", rbV2: "sofort zurückgelesen",
+    demosTitle: "Interaktive Demonstration",
+    demosLead: "Die folgenden Demonstrationskarten werden automatisch abgespielt und unterstützen zusätzlich die manuelle Bedienung. Mit „Erneut abspielen“ starten Sie eine Karte neu.",
+    panelOpen: "Panel-URL: <code>/conow-local-panel?device_id=…</code> (auch über die Home-Assistant-Seitenleiste erreichbar).",
+    auto: "Auto", replay: "Erneut abspielen",
+    demo1Title: "Live-Werte",
+    demo1Lead: "Das Panel liest im Polling-Intervall alle Blöcke der aktiven Tabelle und aktualisiert die Werte an Ort und Stelle; das Layout bleibt stabil.",
+    demo2Title: "Gruppenbearbeitung und Übermittlung",
+    demo2Lead: "Nach Änderung der Richtung und der Ziel-Leistung werden die Werte gegen die aktuellen Grenzen des Geräts validiert, fortlaufende Register zusammengeführt, die Gruppe in einem einzigen FC-0x10-Frame geschrieben und der Zustand unmittelbar zurückgelesen.",
+    demo3Title: "Durchsetzung der Wertebereiche",
+    demo3Lead: "Beschreibbare Register halten die dokumentierten Gerätebereiche ein, beispielsweise 30–720 min für die Steuerdauer. Eingaben außerhalb des zulässigen Bereichs werden auf den Grenzwert begrenzt und gemeldet.",
+    panelTitle: "Conow Local", panelRefresh: "Aktualisieren",
+    pollLabel: "Poll", pollValue: "30 s",
+    groupRealtime: "Echtzeitüberwachung", groupForce: "Echtzeitsteuerung",
+    regBatteryPower: "Batterieleistung", regGridPower: "Netz-Wirkleistung",
+    regPvPower: "PV-Gesamtleistung", regSoc: "System-SoC",
+    regDirection: "Lade-/Entladerichtung",
+    regTargetPower: "Ziel-Lade-/Entladeleistung",
+    regCutoff: "Lade-/Entlade-Abschalt-SoC",
+    regDuration: "Lade-/Entladedauer",
+    durationRange: "Zulässiger Bereich",
+    dirCharge: "Laden", dirDischarge: "Entladen", dirIdle: "Leerlauf",
+    actionApply: "Gruppe senden", actionApplying: "Wird gesendet…",
+    actionCancel: "Abbrechen", actionConfirm: "Bestätigen",
+    confirmTitle: "Schreiben bestätigen",
+    confirmText: "Gruppe „{group}“ auf das Gerät schreiben?",
+    noticeSent: "{group}: gesendet",
+    noticeClamped: "{name} auf {value} begrenzt ({min}–{max})",
+    writePathTitle: "Schreibablauf",
+    writePathLead: "Jede Übermittlung folgt demselben Ablauf.",
+    step1Title: "Prüfen",
+    step1Text: "Jedes beschreibbare Register wird gegen seine aktuellen Grenzen und Abhängigkeiten validiert.",
+    step2Title: "Zusammenfassen",
+    step2Text: "Fortlaufende Register werden zu einem einzigen atomaren FC-0x10-Frame zusammengeführt; Gruppen mit Lücken werden als aufeinanderfolgende FC-0x06-Schreibvorgänge ausgeführt.",
+    step3Title: "Rücklesen",
+    step3Text: "Der Gerätezustand wird unmittelbar zurückgelesen; das Panel wartet nicht auf den nächsten Polling-Zyklus.",
+    refuseTitle: "Wenn das Gerät ablehnt",
+    refuseLead: "Die privaten Exception-Codes stoppen den Modbus-Verkehr und nennen den Grund im Panel.",
+    code4Title: "Ein anderer Client hält das Gerät",
+    code4Text: "Conow-App, Adapter oder die andere Home-Assistant-Instanz trennen und die Integration neu laden.",
+    code5Title: "Veralteter Bestätigungscode",
+    code5Text: "Das Gerät verlangt eine manuelle Aktualisierung; den Code unter „Konfigurieren“ ändern.",
+    code6Title: "RTU- externe Steuerung ist aus",
+    code6Text: "Nur RTU: „Enable External Control / ModBus RTU“ in der Conow-App einschalten und die Integration neu laden.",
+    prepTitle: "Voraussetzungen",
+    prepLead: "Voraussetzungen für den Betrieb des Panels:",
+    prep1: "In der CONOW-App „Externe Steuerung / ModBus RTU“ aktivieren (gilt für RTU- und Adapterverbindungen).",
+    prep2: "Direktes TCP erfordert den 8-stelligen Hexadezimalcode, den das Gerät anzeigt.",
+    prep3: "Slave-Adresse 160 (0xA0); serielle RTU-Parameter 38400 8N1; TCP-Port 502.",
+    prep4: "Es darf jeweils nur ein Client mit dem Gerät verbunden sein.",
+    prep5: "Nach Änderungen der Verbindungseinstellungen die Integration neu laden.",
+    prep6: "Das Panel ist über die Seitenleiste und unter <code>/conow-local-panel</code> erreichbar.",
+    sourcesTitle: "Quellen",
+    sourcesLead: "Referenzen: CONOW-Modbus-Protokolldokumentation und Projekt-Repository.",
+    srcProtocol: "Balkon-Speicher — Modbus-Protokoll",
+    srcRepo: "Projekt-Repository",
+    tabVersion: "Version", tabUsage: "Bedienung", tabErrors: "Fehler",
+    ctaUsage: "Schritte ansehen", ctaErrors: "Fehlermeldungen",
+    vnTitle: "Version & Release-Notes",
+    vnLead: "Integration 2.5.0. Die v2-Registertabelle wurde am 4. November 2026 finalisiert; v1.0 wurde am 16. Juli 2026 veröffentlicht.",
+    vnR1T: "Doku & Panel-Feinschliff",
+    vnR1B: "Diese Anleitung; Register-Tooltips zeigen nur Adresse, Datentyp und die englische Gerätebeschreibung.",
+    vnR2T: "Steuerdauer & RTU-Schutz",
+    vnR2B: "Die Lade-/Entladedauer ist auf 30–720 min begrenzt; Exception 6 auf einer RTU-Verbindung stoppt das Polling und verweist auf den App-Schalter.",
+    vnR3T: "Sicherere Verifikation & Ablehnungen",
+    vnR3B: "Der Bestätigungscode wird nur im Konfigurationsdialog geschrieben; geräteweite Ablehnungen (4/5) stoppen den gesamten Modbus-Verkehr bis zur Behebung.",
+    vnR4T: "Uhr & Fehlerhinweise",
+    vnR4B: "Register für die Geräteuhr mit eigener Kalibriergruppe; Exception-Codes werden verständlich erklärt.",
+    vnR5T: "v2.0-Registertabelle",
+    vnR5B: "panel_registers.json finalisiert; die Prüfung von 0x274E wählt v2 statt v1.",
+    usageTitle: "Betriebsablauf",
+    usageLead: "Der Ablauf umfasst den vollständigen Vorgang von der Gerätevorbereitung bis zur bestätigten Schreiboperation; die Demonstrationskarten werden automatisch abgespielt.",
+    appStepTitle: "Gerät in der CONOW-App vorbereiten",
+    appStepText: "Öffnen Sie in der CONOW-App „Geräte“ → Zielgerät → „Modbus Service“. Aktivieren Sie je nach Verbindung Modbus TCP oder Modbus RTU und prüfen Sie Slave-Adresse 0xA0 sowie Port 502. Dynamic Auth Code muss „Verified“ anzeigen; andernfalls wählen Sie „Refresh“.",
+    appCaption: "CONOW-App → Modbus Service (RTU hat Vorrang; TCP zeigt den Verifizierungsstatus).",
+    setupStepTitle: "Integration in Home Assistant hinzufügen",
+    setupStepText: "Öffnen Sie „Einstellungen → Geräte & Dienste → Integration hinzufügen → Conow Local“ und wählen Sie die zur Hardware passende Verbindungsart. Das folgende Formular zeigt die zugehörigen Felder und Standardwerte. Nach dem Absenden erscheint der Eintrag unter „Geräte & Dienste“; bei einem Fehler beachten Sie den Tab „Fehler“.",
+    setupDialogTitle: "Verbindungsart",
+    setupDialogDesc: "Wählen Sie, wie das Gerät erreicht wird: RS-485 seriell, Modbus TCP über einen RS-485/Ethernet-Adapter oder Modbus TCP direkt am All-in-One-Gerät.",
+    setupRtu: "Modbus RTU (seriell)",
+    setupTcp: "Modbus TCP (Ethernet-Adapter)",
+    setupDirect: "Modbus TCP (direkt am All-in-One-Gerät)",
+    fldDeviceName: "Gerätename",
+    fldSerialPort: "Serieller Anschluss",
+    fldBaud: "Baudrate",
+    fldHost: "Host / IP-Adresse",
+    fldTcpPort: "TCP-Port",
+    fldSlave: "Slave-Adresse",
+    fldVerify: "Bestätigungscode",
+    setupSubmit: "Absenden",
+    noteRtu: "Aktivieren Sie vor dem Fortfahren „Externe Steuerung / ModBus RTU“ in der CONOW-App. Standardwerte: 38400 8N1, Slave-Adresse 0xA0.",
+    noteTcp: "Der Adapter wandelt Modbus TCP in RTU um; am Gerät sind keine Änderungen erforderlich. Standardwerte: Port 502, Slave-Adresse 0xA0.",
+    noteDirect: "Der 8-stellige Hexadezimalcode wird in die Register 0x2701–0x2702 geschrieben; der Eintrag wird erst nach Bestätigung durch das Gerät erstellt.",
+    setupCaption: "Die Felder entsprechen dem Home-Assistant-Dialog; die Standardwerte sind vorausgefüllt.",
+    stepOpenTitle: "Panel öffnen",
+    stepOpenText: "Das Panel ist über die Seitenleiste oder direkt über seine URL erreichbar. Es lädt die vom aktiven Gerät gemeldete Tabellenversion.",
+    errorsTitle: "Fehlerszenarien und Meldungen",
+    errorsLead: "Die Integration benennt die konkrete Ursache statt einer allgemeinen Fehlermeldung. Die folgenden Meldungen entsprechen der Benutzeroberfläche.",
+    errPreview: "Live-Vorschau",
+    err4Title: "Ein anderer Client hält das Gerät",
+    errMsg4: "Das Gerät ist bereits mit einem anderen Client verbunden (MAC-Adresse geändert); die Modbus-Kommunikation wurde gestoppt. Trennen Sie die andere Verbindung (Conow-App, RS-485-Adapter oder eine andere Home-Assistant-Instanz) und laden Sie die Integration neu oder starten Sie Home Assistant neu.",
+    err5Title: "Der Bestätigungscode ist veraltet",
+    errMsg5: "Das Gerät verlangt eine manuelle Aktualisierung: Der Bestätigungscode ist nicht mehr gültig und die Modbus-Kommunikation wurde gestoppt. Aktualisieren Sie ihn unter Einstellungen → Geräte & Dienste → Conow Local → Konfigurieren.",
+    err6Title: "RTU-externe Steuerung ist aus",
+    errMsg6: "Der externe Steuerungs-Schalter (RTU) des Geräts ist aus. Öffnen Sie die Conow-App, aktivieren Sie im Gerätepaneel „Externe Steuerung / ModBus RTU“ und laden Sie anschließend die Integration neu; die Abfrage wurde gestoppt.",
+    errRejectedTitle: "Das Gerät hat das Schreiben abgelehnt",
+    errMsgRejected: "{group}: Das Gerät hat das Schreiben abgelehnt ({error}). Prüfe die Werte und versuche es erneut.",
+    errUnreadableTitle: "Keine Gerätedaten lesbar",
+    errMsgUnreadable: "Es konnten keine Gerätedaten gelesen werden. Prüfen Sie, ob das Gerät online ist und die serielle bzw. Netzwerkverbindung funktioniert.",
+    errMismatchTitle: "Firmware unter v2",
+    errMsgMismatch: "Die Gerätefirmware {firmware} ist niedriger als die für die endgültige Registerzuordnung (panel_registers.json) erforderliche Version {minimum}; Entitäten werden aus registers.json (v1) gelesen und das Gruppenpanel ist nicht verfügbar.",
+    cfTitle: "Beim Hinzufügen oder Ändern",
+    cfLead: "Im Home-Assistant-Dialog angezeigte Meldungen.",
+    cfCannotConnectLabel: "Keine Verbindung",
+    cfCannotConnectMsg: "Verbindung über Modbus nicht möglich. Prüfe Verbindung, „Externen Steuerung / ModBus RTU“ und Slave-Adresse.",
+    cfInvalidCodeLabel: "Ungültiger Bestätigungscode",
+    cfInvalidCodeMsg: "Der Bestätigungscode muss genau 8 Hexadezimalzeichen haben.",
+    cfTcpFailedLabel: "TCP-Verbindung fehlgeschlagen",
+    cfTcpFailedMsg: "Keine TCP-Verbindung möglich. Prüfen Sie IP-Adresse, geöffneten TCP-Port und ob Home Assistant im selben Netzwerk wie das Gerät ist.",
+    cfVerificationFailedLabel: "Verifikation fehlgeschlagen",
+    cfVerificationFailedMsg: "Das Gerät hat den Bestätigungscode abgelehnt. Prüfe den 8-stelligen Code am Gerät und versuche es erneut.",
+    cfDeviceBusyLabel: "Gerät belegt",
+    cfDeviceBusyMsg: "Das Gerät ist bereits mit einem anderen Client verbunden (MAC-Adresse geändert). Trenne die andere Verbindung (Conow-App, RS-485-Adapter oder eine andere Home-Assistant-Instanz) und versuche es erneut.",
+    cfVerificationRequiredLabel: "Verifikation erforderlich",
+    cfVerificationRequiredMsg: "Das Gerät verlangt eine manuelle Aktualisierung: Der Bestätigungscode ist nicht mehr gültig. Lies den aktuellen 8-stelligen Code am Gerät ab und aktualisiere ihn unter Konfigurieren.",
+    cfExternalControlLabel: "Externe Steuerung aus",
+    cfExternalControlMsg: "Der externe Steuerungs-Schalter (RTU) des Geräts ist aus. Aktiviere „Externe Steuerung / ModBus RTU“ im Gerätepaneel der Conow-App und versuche es erneut.",
+    hintsTitle: "Eingabeprüfung vor dem Senden",
+    hintsLead: "Wird unterhalb der Gruppe angezeigt, solange ein Wert ungültig ist; es werden keine Daten gesendet.",
+    hintRange: "Außerhalb des zulässigen Bereichs, bitte anpassen: {codes}",
+    hintIncomplete: "Füllen Sie alle beschreibbaren Felder aus",
+    hintUnchanged: "Keine Änderungen",
+    hintInvalidTime: "Ungültige Zeitwerte, bitte erneut einstellen: {codes}",
+    hintTimeOrder: "Ungültige Zeitfenster (Beginn vor Ende, keine Überschneidung): {slots}",
+    hintClamped: "{name} auf {value} begrenzt ({min}–{max})",
+    placeholdersNote: "Platzhalter in geschweiften Klammern werden zur Laufzeit ersetzt.",
+    footerText: "README.html · Conow Local v2.0"
+  },
+  nl: {
+    navOverview: "Overzicht", navDemos: "Demo's", navWrite: "Schrijfpad",
+    navPrepare: "Vooraf", navSources: "Bronnen",
+    heroEyebrow: "Conow Local voor Home Assistant",
+    pageTitle: "Conow Local",
+    heroLead: "Lokale Modbus RTU/TCP-integratie voor CONOW-balkonopslag met aansluiting op Home Assistant.",
+    badgeMap: "v2-tabel", badgePoll: "30 s polling", badgeWrite: "Atomaire groepswrites",
+    badgeLangs: "EN · 中文 · DE · NL",
+    diffTitle: "Versievergelijking v1 en v2",
+    diffLead: "Beide registertabellen gebruiken dezelfde parser en hetzelfde entiteitsmodel; alleen de gegevens verschillen. Per item wordt precies één tabel geladen en gepolld.",
+    thAspect: "Onderdeel", rowReleased: "Uitgebracht", rowMap: "Registertabel", rowSelected: "Gekozen wanneer",
+    rowPoll: "Poll-interval", rowControl: "Bediening", rowWrite: "Schrijfwijze",
+    rowReadback: "Na het schrijven",
+    selV1: "de probe van 0x274E mislukt", selV2: "0x274E antwoordt (elke waarde)",
+    pollV1: "5 s per blok", pollV2: "30 s per blok",
+    ctrlV1: "entiteiten op de apparaatpagina", ctrlV2: "het gegroepeerde paneel",
+    writeV1: "één waarde; de apparaatpagina weigert en verwijst naar het paneel",
+    writeV2: "hele groep, gevalideerd, één atomair FC 0x10-frame",
+    rbV1: "wacht op de volgende poll", rbV2: "direct teruggelezen",
+    demosTitle: "Interactieve demonstratie",
+    demosLead: "De volgende demonstratiekaarten worden automatisch afgespeeld en ondersteunen ook handmatige bediening. Met ‘Opnieuw’ start u een kaart opnieuw.",
+    panelOpen: "Paneel-URL: <code>/conow-local-panel?device_id=…</code> (ook bereikbaar via de zijbalk van Home Assistant).",
+    auto: "Auto", replay: "Opnieuw",
+    demo1Title: "Live waarden",
+    demo1Lead: "Het paneel leest met het poll-interval alle blokken van de actieve tabel en werkt de waarden ter plaatse bij; de indeling blijft stabiel.",
+    demo2Title: "Groep bewerken en verzenden",
+    demo2Lead: "Na wijziging van de richting en het doelvermogen worden de waarden gevalideerd tegen de actuele grenzen van het apparaat, worden aaneengesloten registers samengevoegd, wordt de groep in één FC 0x10-frame geschreven en wordt de status direct teruggelezen.",
+    demo3Title: "Afdwinging van waardebereiken",
+    demo3Lead: "Beschrijfbare registers volgen de gedocumenteerde bereiken van het apparaat, bijvoorbeeld 30–720 min voor de regeltijd. Invoer buiten het toegestane bereik wordt op de grenswaarde begrensd en gemeld.",
+    panelTitle: "Conow Local", panelRefresh: "Vernieuwen",
+    pollLabel: "Poll", pollValue: "30 s",
+    groupRealtime: "Realtime bewaking", groupForce: "Realtime besturing",
+    regBatteryPower: "Accuvermogen", regGridPower: "Net actief vermogen",
+    regPvPower: "PV-totaalvermogen", regSoc: "Systeem-SoC",
+    regDirection: "Laad-/ontlaadrichting",
+    regTargetPower: "Doel laad-/ontlaadvermogen",
+    regCutoff: "Laad-/ontlaadafslag-SoC",
+    regDuration: "Laad-/ontlaadduur",
+    durationRange: "Toegestaan bereik",
+    dirCharge: "Laden", dirDischarge: "Ontladen", dirIdle: "Inactief",
+    actionApply: "Groep verzenden", actionApplying: "Verzenden…",
+    actionCancel: "Annuleren", actionConfirm: "Bevestigen",
+    confirmTitle: "Schrijven bevestigen",
+    confirmText: "Groep “{group}” naar het apparaat schrijven?",
+    noticeSent: "{group}: verzonden",
+    noticeClamped: "{name} beperkt tot {value} ({min}–{max})",
+    writePathTitle: "Schrijfprocedure",
+    writePathLead: "Elke verzending volgt dezelfde procedure.",
+    step1Title: "Valideren",
+    step1Text: "Elk beschrijfbaar register wordt gevalideerd tegen de actuele grenzen en afhankelijkheden.",
+    step2Title: "Samenvoegen",
+    step2Text: "Aaneengesloten registers worden samengevoegd tot één atomair FC 0x10-frame; groepen met onderbrekingen worden als opeenvolgende FC 0x06-schrijfacties uitgevoerd.",
+    step3Title: "Teruglezen",
+    step3Text: "De apparaatstatus wordt direct teruggelezen; het paneel wacht niet op de volgende poll-cyclus.",
+    refuseTitle: "Als het apparaat weigert",
+    refuseLead: "De private exceptioncodes stoppen het Modbus-verkeer en noemen de oorzaak in het paneel.",
+    code4Title: "Een andere client houdt het apparaat",
+    code4Text: "Sluit de Conow-app, de adapter of de andere Home Assistant-instantie en herlaad de integratie.",
+    code5Title: "Verouderde verificatiecode",
+    code5Text: "Het apparaat vraagt om handmatig verversen; werk de code bij onder Configureren.",
+    code6Title: "RTU externe besturing staat uit",
+    code6Text: "Alleen RTU: zet “Enable External Control / ModBus RTU” aan in de Conow-app en herlaad de integratie.",
+    prepTitle: "Voorwaarden",
+    prepLead: "Voorwaarden voor het gebruik van het paneel:",
+    prep1: "Schakel ‘Externe besturing / ModBus RTU’ in de CONOW-app in (voor RTU- en adapterverbindingen).",
+    prep2: "Direct TCP vereist de 8-tekens hexadecimale verificatiecode die het apparaat toont.",
+    prep3: "Slave-adres 160 (0xA0); RTU-seriele parameters 38400 8N1; TCP-poort 502.",
+    prep4: "Er mag slechts één client tegelijk met het apparaat verbonden zijn.",
+    prep5: "Herlaad de integratie na wijziging van de verbindingsinstellingen.",
+    prep6: "Het paneel is beschikbaar via de zijbalk en op <code>/conow-local-panel</code>.",
+    sourcesTitle: "Bronnen",
+    sourcesLead: "Referenties: CONOW Modbus-protocoldocumentatie en de projectrepository.",
+    srcProtocol: "Balkonopslag — Modbus-protocol",
+    srcRepo: "Projectrepository",
+    tabVersion: "Versie", tabUsage: "Gebruik", tabErrors: "Fouten",
+    ctaUsage: "Bekijk de stappen", ctaErrors: "Foutmeldingen",
+    vnTitle: "Versie & release-opmerkingen",
+    vnLead: "Integratie 2.5.0. De v2-registertabel is op 4 november 2026 definitief vastgesteld; v1.0 is op 16 juli 2026 uitgebracht.",
+    vnR1T: "Documentatie & paneelafwerking",
+    vnR1B: "Deze handleiding; registertooltips tonen alleen adres, gegevenstype en de Engelse apparaatbeschrijving.",
+    vnR2T: "Regeltijd & RTU-beveiliging",
+    vnR2B: "De laad-/ontlaadduur is beperkt tot 30–720 min; exception 6 op een RTU-verbinding stopt het pollen en verwijst naar de app-schakelaar.",
+    vnR3T: "Veiligere verificatie & weigeringen",
+    vnR3B: "De verificatiecode wordt alleen in de configuratiestroom geschreven; apparaatbrede weigeringen (4/5) stoppen al het Modbus-verkeer tot het is opgelost.",
+    vnR4T: "Klok & fouthints",
+    vnR4B: "Register voor de apparaatklok met eigen kalibratiegroep; exceptioncodes worden in gewone taal uitgelegd.",
+    vnR5T: "v2.0-registertabel",
+    vnR5B: "panel_registers.json definitief; de probe van 0x274E kiest v2 boven v1.",
+    usageTitle: "Bedieningsprocedure",
+    usageLead: "De procedure omvat het volledige traject van apparaatvoorbereiding tot een bevestigde schrijfactie; de demonstratiekaarten worden automatisch afgespeeld.",
+    appStepTitle: "Het apparaat voorbereiden in de CONOW-app",
+    appStepText: "Ga in de CONOW-app naar ‘Apparaten’ → doelapparaat → ‘Modbus Service’. Schakel afhankelijk van de verbinding Modbus TCP of Modbus RTU in en controleer slave-adres 0xA0 en poort 502. Dynamic Auth Code moet ‘Verified’ tonen; kies anders ‘Refresh’.",
+    appCaption: "CONOW-app → Modbus Service (RTU heeft voorrang; TCP toont de verificatiestatus).",
+    setupStepTitle: "De integratie toevoegen in Home Assistant",
+    setupStepText: "Ga naar ‘Instellingen → Apparaten & diensten → Integratie toevoegen → Conow Local’ en kies het verbindingstype dat bij de hardware past. Het onderstaande formulier toont de bijbehorende velden en standaardwaarden. Na verzending verschijnt het item onder ‘Apparaten & diensten’; raadpleeg bij een fout het tabblad ‘Fouten’.",
+    setupDialogTitle: "Verbindingstype",
+    setupDialogDesc: "Selecteer hoe het apparaat wordt bereikt: RS-485 serieel, Modbus TCP via een RS-485/Ethernet-adapter of Modbus TCP rechtstreeks op het alles-in-één-apparaat.",
+    setupRtu: "Modbus RTU (serieel)",
+    setupTcp: "Modbus TCP (Ethernet-adapter)",
+    setupDirect: "Modbus TCP (rechtstreeks op alles-in-één)",
+    fldDeviceName: "Apparaatnaam",
+    fldSerialPort: "Seriële poort",
+    fldBaud: "Baudsnelheid",
+    fldHost: "Host / IP-adres",
+    fldTcpPort: "TCP-poort",
+    fldSlave: "Slave-adres",
+    fldVerify: "Verificatiecode",
+    setupSubmit: "Verzenden",
+    noteRtu: "Schakel vóór het verdergaan ‘Externe besturing / ModBus RTU’ in de CONOW-app in. Standaardwaarden: 38400 8N1, slave-adres 0xA0.",
+    noteTcp: "De adapter zet Modbus TCP om naar RTU; op het apparaat zijn geen wijzigingen nodig. Standaardwaarden: poort 502, slave-adres 0xA0.",
+    noteDirect: "De 8-tekens hexadecimale code wordt naar de registers 0x2701–0x2702 geschreven; het item wordt pas aangemaakt nadat het apparaat dit bevestigt.",
+    setupCaption: "De velden komen overeen met het Home Assistant-dialoog; standaardwaarden zijn vooraf ingevuld.",
+    stepOpenTitle: "Het paneel openen",
+    stepOpenText: "Het paneel is beschikbaar via de zijbalk of rechtstreeks via de URL. Het laadt de tabelversie die het actieve apparaat meldt.",
+    errorsTitle: "Foutscenario's en meldingen",
+    errorsLead: "De integratie benoemt de concrete oorzaak in plaats van een algemene foutmelding. De volgende meldingen komen overeen met de gebruikersinterface.",
+    errPreview: "Live voorbeeld",
+    err4Title: "Een andere client houdt het apparaat",
+    errMsg4: "Het apparaat is al verbonden met een andere client (MAC-adres gewijzigd); de Modbus-communicatie is gestopt. Sluit de andere verbinding (Conow-app, RS-485-adapter of een andere Home Assistant-instantie) en herlaad de integratie of herstart Home Assistant.",
+    err5Title: "De verificatiecode is verouderd",
+    errMsg5: "Het apparaat vraagt om handmatig te verversen: de verificatiecode is niet meer geldig en de Modbus-communicatie is gestopt. Werk deze bij via Instellingen → Apparaten & diensten → Conow Local → Configureren.",
+    err6Title: "RTU externe besturing staat uit",
+    errMsg6: "De RTU-schakelaar voor externe besturing van het apparaat staat uit. Open de Conow-app, schakel in het apparaatpaneel “Externe besturing / ModBus RTU” in en herlaad daarna de integratie; het pollen is gestopt.",
+    errRejectedTitle: "Het apparaat weigerde de schrijfactie",
+    errMsgRejected: "{group}: Het apparaat heeft de schrijfactie geweigerd ({error}). Controleer de waarden en probeer opnieuw.",
+    errUnreadableTitle: "Geen apparaatgegevens leesbaar",
+    errMsgUnreadable: "Er konden geen apparaatgegevens worden gelezen. Controleer of het apparaat online is en of de seriële of netwerkverbinding werkt.",
+    errMismatchTitle: "Firmware onder v2",
+    errMsgMismatch: "Apparaatfirmware {firmware} is lager dan {minimum}, de vereiste versie voor de definitieve registermap (panel_registers.json); entiteiten worden uit registers.json (v1) gelezen en het groepenpaneel is niet beschikbaar.",
+    cfTitle: "Bij toevoegen of wijzigen",
+    cfLead: "Meldingen in het Home Assistant-dialoog.",
+    cfCannotConnectLabel: "Geen verbinding",
+    cfCannotConnectMsg: "Kan geen Modbus-verbinding maken. Controleer de verbinding, Externe besturing / ModBus RTU en het slave-adres.",
+    cfInvalidCodeLabel: "Ongeldige verificatiecode",
+    cfInvalidCodeMsg: "De verificatiecode moet precies 8 hexadecimale tekens hebben.",
+    cfTcpFailedLabel: "TCP-verbinding mislukt",
+    cfTcpFailedMsg: "Kan geen TCP-verbinding openen. Controleer of het IP-adres klopt, de TCP-poort open is en Home Assistant in hetzelfde netwerk als het apparaat zit.",
+    cfVerificationFailedLabel: "Verificatie mislukt",
+    cfVerificationFailedMsg: "Het apparaat heeft de verificatiecode geweigerd. Controleer de 8-tekens code op het apparaat en probeer opnieuw.",
+    cfDeviceBusyLabel: "Apparaat bezet",
+    cfDeviceBusyMsg: "Het apparaat is al verbonden met een andere client (MAC-adres gewijzigd). Sluit de andere verbinding (Conow-app, RS-485-adapter of een andere Home Assistant-instantie) en probeer opnieuw.",
+    cfVerificationRequiredLabel: "Verificatie vereist",
+    cfVerificationRequiredMsg: "Het apparaat vraagt om handmatig te verversen: de verificatiecode is niet meer geldig. Lees de actuele 8-tekens code van het apparaat en werk deze bij via Configureren.",
+    cfExternalControlLabel: "Externe besturing uit",
+    cfExternalControlMsg: "De RTU-schakelaar voor externe besturing van het apparaat staat uit. Schakel “Externe besturing / ModBus RTU” in het apparaatpaneel van de Conow-app in en probeer opnieuw.",
+    hintsTitle: "Invoervalidatie vóór verzending",
+    hintsLead: "Wordt onder de groep weergegeven zolang een waarde ongeldig is; er worden geen gegevens verzonden.",
+    hintRange: "Buiten het toegestane bereik, pas aan: {codes}",
+    hintIncomplete: "Vul alle beschrijfbare velden in",
+    hintUnchanged: "Geen wijzigingen",
+    hintInvalidTime: "Ongeldige tijdwaarden, stel ze opnieuw in: {codes}",
+    hintTimeOrder: "Ongeldige tijdvakken (begin vóór einde, geen overlap): {slots}",
+    hintClamped: "{name} beperkt tot {value} ({min}–{max})",
+    placeholdersNote: "Waarden tussen accolades worden tijdens runtime vervangen.",
+    footerText: "README.html · Conow Local v2.0"
+  }
+};
+
+let lang = "en";
+
+function t(key, vars) {
+  const dict = I18N[lang] || I18N.en;
+  let text = dict[key] !== undefined ? dict[key] : (I18N.en[key] !== undefined ? I18N.en[key] : key);
+  if (vars) {
+    text = text.replace(/\{(\w+)\}/g, (m, name) =>
+      vars[name] !== undefined ? String(vars[name]) : m
+    );
+  }
+  return text;
+}
+
+function $(id) { return document.getElementById(id); }
+function fmt(n) { return n.toLocaleString("en-US"); }
+
+function setLang(next) {
+  if (!I18N[next]) return;
+  lang = next;
+  document.documentElement.lang = next;
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.innerHTML = t(el.dataset.i18n);
+  });
+  document.querySelectorAll("[data-lang]").forEach((btn) => {
+    const active = btn.dataset.lang === next;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+  refreshDynamicText();
+}
+
+document.querySelectorAll("[data-lang]").forEach((btn) => {
+  btn.addEventListener("click", () => setLang(btn.dataset.lang));
+});
+
+/* ---------------- mock panel state ---------------- */
+
+const POWER_MIN = 0, POWER_MAX = 3000;
+const CUTOFF_MIN = 10, CUTOFF_MAX = 100;
+const DUR_MIN = 30, DUR_MAX = 720;
+
+const state = { dir: 1, power: 320, cutoff: 20, duration: 120, writing: false };
+let notice = null;
+let clampNotice = null;
+let autoTimers = [];
+let autoPaused = false;
+let powerAnim = null;
+
+function rowDir() { return document.querySelector('[data-row="dir"]'); }
+function rowPower() { return document.querySelector('[data-row="power"]'); }
+
+function render() {
+  document.querySelectorAll("[data-dir]").forEach((btn) => {
+    btn.classList.toggle("on", Number(btn.dataset.dir) === state.dir);
+  });
+  const p = (state.power - POWER_MIN) / (POWER_MAX - POWER_MIN);
+  const powerSlider = $("power-slider");
+  powerSlider.style.setProperty("--p", p.toFixed(3));
+  $("power-value").textContent = fmt(state.power) + " W";
+  const c = (state.cutoff - CUTOFF_MIN) / (CUTOFF_MAX - CUTOFF_MIN);
+  $("cutoff-slider").style.setProperty("--p", c.toFixed(3));
+  $("cutoff-value").textContent = state.cutoff + " %";
+  $("duration-value").textContent = state.duration + " min";
+  $("duration-value-2").textContent = state.duration + " min";
+  $("apply-btn").textContent = state.writing ? t("actionApplying") : t("actionApply");
+  $("apply-btn").disabled = state.writing;
+}
+
+function showNotice() {
+  const el = $("demo-notice");
+  if (!notice) { el.classList.remove("show"); return; }
+  el.textContent = t(notice.key, notice.vars);
+  el.classList.remove("ok", "warn");
+  el.classList.add(notice.kind === "ok" ? "ok" : "warn", "show");
+}
+
+function showClamp() {
+  const el = $("clamp-notice");
+  if (!clampNotice) { el.classList.remove("show"); return; }
+  el.textContent = t(clampNotice.key, clampNotice.vars);
+  el.classList.add("show");
+}
+
+function refreshDynamicText() {
+  $("apply-btn").textContent = state.writing ? t("actionApplying") : t("actionApply");
+  const dialog = $("confirm-dialog");
+  if (dialog.classList.contains("show")) {
+    $("confirm-text").textContent = t("confirmText", { group: t("groupForce") });
+  }
+  showNotice();
+  showClamp();
+  renderErrPreview();
+  setSetupMode(setupMode);
+}
+
+/* ---------------- auto-play ---------------- */
+
+function clearAuto() {
+  autoTimers.forEach((id) => clearTimeout(id));
+  autoTimers = [];
+  if (powerAnim) { clearInterval(powerAnim); powerAnim = null; }
+}
+
+function later(ms, fn) { autoTimers.push(setTimeout(fn, ms)); }
+
+function resetState() {
+  state.dir = 1;
+  state.power = 320;
+  state.cutoff = 20;
+  state.duration = 120;
+  state.writing = false;
+  notice = null;
+  $("confirm-dialog").classList.remove("show");
+  render();
+  showNotice();
+}
+
+function flash(el) {
+  if (!el) return;
+  el.classList.remove("valueflash");
+  void el.offsetWidth;
+  el.classList.add("valueflash");
+}
+
+function animatePower(to, ms) {
+  if (powerAnim) clearInterval(powerAnim);
+  const from = state.power;
+  const start = performance.now();
+  powerAnim = setInterval(() => {
+    const now = performance.now();
+    const k = Math.min(1, (now - start) / ms);
+    state.power = Math.round(from + (to - from) * k);
+    render();
+    if (k >= 1) { clearInterval(powerAnim); powerAnim = null; }
+  }, 16);
+}
+
+function openConfirm() {
+  $("confirm-text").textContent = t("confirmText", { group: t("groupForce") });
+  $("confirm-dialog").classList.add("show");
+}
+
+function performWrite() {
+  $("confirm-dialog").classList.remove("show");
+  state.writing = true;
+  render();
+  later(1000, () => {
+    state.writing = false;
+    render();
+    notice = { kind: "ok", key: "noticeSent", vars: { group: t("groupForce") } };
+    showNotice();
+    flash($("power-value"));
+    flash($("duration-value"));
+  });
+  later(3400, () => {
+    notice = null;
+    showNotice();
+  });
+}
+
+function startAuto() {
+  clearAuto();
+  autoPaused = false;
+  resetState();
+  later(900, () => {
+    rowDir().classList.add("hl");
+    state.dir = 2;
+    render();
+  });
+  later(1300, () => rowDir().classList.remove("hl"));
+  later(2000, () => animatePower(800, 1000));
+  later(3300, () => {
+    $("apply-btn").classList.add("pressed");
+    rowPower().classList.add("hl");
+  });
+  later(3520, () => $("apply-btn").classList.remove("pressed"));
+  later(3900, () => {
+    rowPower().classList.remove("hl");
+    openConfirm();
+  });
+  later(4800, () => performWrite());
+  later(9200, () => {
+    if (!autoPaused) startAuto();
+  });
+}
+
+/* ---------------- interactions ---------------- */
+
+document.querySelectorAll("[data-dir]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    autoPaused = true;
+    clearAuto();
+    state.dir = Number(btn.dataset.dir);
+    render();
+  });
+});
+
+function sliderToValue(ev, el, min, max) {
+  const track = el.querySelector(".track");
+  const rect = track.getBoundingClientRect();
+  const k = Math.min(1, Math.max(0, (ev.clientX - rect.left) / rect.width));
+  return Math.round(min + k * (max - min));
+}
+
+$("power-slider").addEventListener("pointerdown", (ev) => {
+  autoPaused = true;
+  clearAuto();
+  state.power = sliderToValue(ev, $("power-slider"), POWER_MIN, POWER_MAX);
+  render();
+  const move = (e) => {
+    state.power = sliderToValue(e, $("power-slider"), POWER_MIN, POWER_MAX);
+    render();
+  };
+  const up = () => {
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", up);
+  };
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", up);
+});
+
+$("cutoff-slider").addEventListener("pointerdown", (ev) => {
+  autoPaused = true;
+  clearAuto();
+  state.cutoff = sliderToValue(ev, $("cutoff-slider"), CUTOFF_MIN, CUTOFF_MAX);
+  render();
+  const move = (e) => {
+    state.cutoff = sliderToValue(e, $("cutoff-slider"), CUTOFF_MIN, CUTOFF_MAX);
+    render();
+  };
+  const up = () => {
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", up);
+  };
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", up);
+});
+
+$("apply-btn").addEventListener("click", () => {
+  autoPaused = true;
+  clearAuto();
+  openConfirm();
+});
+
+$("confirm-cancel").addEventListener("click", () => {
+  autoPaused = true;
+  clearAuto();
+  $("confirm-dialog").classList.remove("show");
+});
+
+$("confirm-ok").addEventListener("click", () => {
+  autoPaused = true;
+  clearAuto();
+  performWrite();
+});
+
+$("replay-main").addEventListener("click", () => startAuto());
+
+/* ---------------- live values ---------------- */
+
+let battery = -820, grid = 1240, pv = 2060, soc = 64;
+
+function bump(el) {
+  el.classList.remove("valueflash");
+  void el.offsetWidth;
+  el.classList.add("valueflash");
+}
+
+setInterval(() => {
+  battery = Math.max(-2000, Math.min(2000, battery + Math.round((Math.random() - 0.5) * 520)));
+  grid = Math.max(0, Math.min(4000, grid + Math.round((Math.random() - 0.5) * 700)));
+  pv = Math.max(0, Math.min(4200, pv + Math.round((Math.random() - 0.5) * 500)));
+  soc = Math.max(48, Math.min(82, soc + (Math.random() < 0.5 ? -1 : 1)));
+  const b = $("v-battery"), g = $("v-grid"), p = $("v-pv"), s = $("v-soc");
+  b.textContent = (battery < 0 ? "−" : "") + fmt(Math.abs(battery)) + " W";
+  g.textContent = fmt(grid) + " W";
+  p.textContent = fmt(pv) + " W";
+  s.textContent = soc + " %";
+  [b, g, p, s].forEach(bump);
+}, 1500);
+
+/* ---------------- duration clamp demo ---------------- */
+
+let limitTimers = [];
+function stopLimit() { limitTimers.forEach(clearTimeout); limitTimers = []; }
+function laterLimit(ms, fn) { limitTimers.push(setTimeout(fn, ms)); }
+
+function limitCycle() {
+  stopLimit();
+  state.duration = 120;
+  clampNotice = null;
+  render();
+  showClamp();
+  laterLimit(700, () => {
+    state.duration = 900;
+    render();
+    flash($("duration-value-2"));
+  });
+  laterLimit(1400, () => {
+    state.duration = DUR_MAX;
+    render();
+    flash($("duration-value-2"));
+    clampNotice = {
+      key: "noticeClamped",
+      vars: { name: t("regDuration"), value: "720 min", min: 30, max: 720 }
+    };
+    showClamp();
+  });
+  laterLimit(3600, () => {
+    clampNotice = null;
+    showClamp();
+    state.duration = 120;
+    render();
+  });
+  laterLimit(4700, () => limitCycle());
+}
+$("replay-limit").addEventListener("click", limitCycle);
+
+/* ---------------- pipeline animation ---------------- */
+
+let stepIndex = 0;
+setInterval(() => {
+  document.querySelectorAll(".step").forEach((el, i) => {
+    el.classList.toggle("active", i === stepIndex);
+  });
+  stepIndex = (stepIndex + 1) % 3;
+}, 1100);
+document.querySelectorAll(".step")[0].classList.add("active");
+
+/* ---------------- add-integration dialog mock ---------------- */
+
+const setupModes = ["rtu", "tcp", "direct"];
+let setupMode = "rtu";
+let setupPaused = false;
+
+function setSetupMode(mode) {
+  setupMode = mode;
+  document.querySelectorAll(".setup-opt").forEach((btn) => {
+    btn.classList.toggle("on", btn.dataset.mode === mode);
+  });
+  document.querySelectorAll("[data-field]").forEach((field) => {
+    const kind = field.dataset.field;
+    const visible =
+      kind === "rtu" ? mode === "rtu" :
+      kind === "net" ? mode !== "rtu" :
+      mode === "direct";
+    field.classList.toggle("hidden", !visible);
+  });
+  const note = $("setup-note");
+  if (note) {
+    note.textContent = t(
+      mode === "rtu" ? "noteRtu" : mode === "tcp" ? "noteTcp" : "noteDirect"
+    );
+  }
+}
+
+document.querySelectorAll(".setup-opt").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    setupPaused = true;
+    setSetupMode(btn.dataset.mode);
+  });
+});
+
+setInterval(() => {
+  if (setupPaused) return;
+  const panel = $("tab-usage");
+  if (!panel || !panel.classList.contains("active")) return;
+  const next = (setupModes.indexOf(setupMode) + 1) % setupModes.length;
+  setSetupMode(setupModes[next]);
+}, 5200);
+
+/* ---------------- app Modbus Service mock ---------------- */
+
+const appTimers = [];
+
+function laterApp(ms, fn) { appTimers.push(setTimeout(fn, ms)); }
+
+function appCycle() {
+  appTimers.forEach(clearTimeout);
+  appTimers.length = 0;
+
+  const tcp = $("app-tcp");
+  const status = $("app-tcp-status");
+  const auth = $("app-auth");
+  const refresh = $("app-refresh");
+  if (!tcp || !status || !auth) return;
+
+  tcp.classList.remove("on");
+  status.textContent = "Lower priority than RTU";
+  auth.textContent = "Expired";
+  auth.classList.remove("ok");
+
+  laterApp(800, () => {
+    tcp.classList.add("on");
+    status.textContent = "Lower priority than RTU · Communication OK";
+  });
+  laterApp(1600, () => { auth.textContent = "Verifying…"; });
+  laterApp(2500, () => {
+    auth.textContent = "Verified";
+    auth.classList.add("ok");
+    refresh.classList.add("hot");
+  });
+  laterApp(3200, () => refresh.classList.remove("hot"));
+}
+
+setInterval(appCycle, 7000);
+appCycle();
+
+/* ---------------- tabs ---------------- */
+
+function setTab(name) {
+  document.querySelectorAll(".tabs button").forEach((btn) => {
+    const on = btn.dataset.tab === name;
+    btn.classList.toggle("active", on);
+    btn.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  document.querySelectorAll(".tab-panel").forEach((panel) => {
+    panel.classList.toggle("active", panel.id === "tab-" + name);
+  });
+  try {
+    history.replaceState(null, "", "#" + name);
+  } catch (err) {
+    /* file:// or sandboxed contexts may refuse; the tab still switches. */
+  }
+  if (name === "usage") {
+    appCycle();
+    setupPaused = false;
+    setSetupMode("rtu");
+    startAuto();
+    limitCycle();
+  } else {
+    clearAuto();
+    stopLimit();
+  }
+}
+
+document.querySelectorAll(".tabs button").forEach((btn) => {
+  btn.addEventListener("click", () => setTab(btn.dataset.tab));
+});
+document.querySelectorAll("[data-goto]").forEach((btn) => {
+  btn.addEventListener("click", () => setTab(btn.dataset.goto));
+});
+
+/* ---------------- error preview ---------------- */
+
+const errCycle = [
+  { code: "EX 4", title: "err4Title", msg: "errMsg4" },
+  { code: "EX 5", title: "err5Title", msg: "errMsg5" },
+  { code: "EX 6", title: "err6Title", msg: "errMsg6" },
+];
+let errIndex = 0;
+
+function renderErrPreview() {
+  const item = errCycle[errIndex];
+  $("err-preview-code").textContent = item.code;
+  $("err-preview-title").textContent = t(item.title);
+  $("err-preview-text").textContent = t(item.msg);
+  const box = $("err-preview");
+  box.classList.remove("flip");
+  void box.offsetWidth;
+  box.classList.add("flip");
+}
+
+setInterval(() => {
+  errIndex = (errIndex + 1) % errCycle.length;
+  renderErrPreview();
+}, 3800);
+
+/* ---------------- boot ---------------- */
+
+setLang("en");
+render();
+renderErrPreview();
+const initialTab = ["version", "usage", "errors"].includes(location.hash.slice(1))
+  ? location.hash.slice(1)
+  : "version";
+setTab(initialTab);
+</script>
+</body>
+</html>
