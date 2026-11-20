@@ -387,7 +387,17 @@ class ConowModbusClient:
                     exc,
                 )
                 if attempt < attempts:
-                    self._reconnect_after_error()
+                    if self._mode == MODBUS_MODE_RTU:
+                        # Reopen the serial port so a half-framed reply cannot
+                        # poison the next attempt.
+                        self._reconnect_after_error()
+                    else:
+                        # A TCP session survives timeouts and malformed frames;
+                        # reconnecting between attempts only adds churn while
+                        # the device is slow or temporarily refusing reads.
+                        # The coordinator drops the link once all attempts
+                        # have failed.
+                        time.sleep(RETRY_INTERVAL_S)
         if self._mode == MODBUS_MODE_TCP:
             msg = (
                 f"Read failed after {attempts} attempts (slave={self._slave}, "
@@ -473,7 +483,17 @@ class ConowModbusClient:
                     exc,
                 )
                 if attempt < attempts:
-                    self._reconnect_after_error()
+                    if self._mode == MODBUS_MODE_RTU:
+                        # Reopen the serial port so a half-framed reply cannot
+                        # poison the next attempt.
+                        self._reconnect_after_error()
+                    else:
+                        # A TCP session survives timeouts and malformed frames;
+                        # reconnecting between attempts only adds churn while
+                        # the device is slow or temporarily refusing reads.
+                        # The coordinator drops the link once all attempts
+                        # have failed.
+                        time.sleep(RETRY_INTERVAL_S)
         _LOGGER.error(
             "Modbus FC 0x10 write failed: slave=%s endpoint=%s addr=%s values=%s err=%s",
             self._slave,

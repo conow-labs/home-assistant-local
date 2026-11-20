@@ -95,10 +95,13 @@ def read_map_blocks(
             # connect timeout, so stop the poll here.
             raise
         except ConowExceptionResponseError as exc:
-            if exc.device_level:
+            if exc.device_level or block == KEY_BLOCK:
                 # Exception 4/5/6 describes the link (another client, stale
                 # verification code, RTU external control off), not this
-                # block: the remaining reads would fail the same way.
+                # block: the remaining reads would fail the same way.  A
+                # refusal of the live-measurement block also leaves no usable
+                # snapshot, and the device is still answering — keep the
+                # exception type so the coordinator does not drop the link.
                 raise
             LOGGER.debug(
                 "Map %s: block %s refused: %s", map_version, block, exc
@@ -274,7 +277,16 @@ class ConowLocalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         err.exception_code,
                     )
                 raise
+            except ConowConnectError:
+                # The socket/serial port could not be opened at all: drop it
+                # so the next poll starts with a fresh connection.
+                self._reset_client()
+                raise
             except ConowModbusError:
+                # Reads or writes exhausted their retries on timeouts,
+                # malformed frames or OS-level errors.  These are real I/O
+                # failures, so discard the link.  Exception responses never
+                # reach this branch: they are handled above without a reset.
                 self._reset_client()
                 raise
 
