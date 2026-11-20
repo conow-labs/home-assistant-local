@@ -2,7 +2,7 @@
 
 Local Modbus RTU/TCP integration for CONOW balcony-solar storage devices (Lyra, CBE, Atlas). No cloud account is required.
 
-**Full documentation: [README.html](README.html)** — installation, Conow app preparation, Home Assistant setup for all three connection types, animated panel demonstrations, the write sequence and every error message. The guide is available in English, Chinese, German and Dutch.
+**Full documentation: [README.html](https://htmlpreview.github.io/?https://raw.githubusercontent.com/conow-labs/home-assistant-local/main/README.html)** — installation, Conow app preparation, Home Assistant setup for all three connection types, animated panel demonstrations, the write sequence and every error message. The guide is available in English, Chinese, German and Dutch.
 
 ## Version notes
 
